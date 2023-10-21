@@ -4,7 +4,6 @@ import logging
 import threading
 import subprocess  # Import the subprocess module
 
-
 # Define the number of orders to fulfill for RTX 3060 and RTX 3090 separately
 orders_to_fulfill_rtx_3060 = 2  # Change this to the desired number for RTX 3060
 orders_to_fulfill_rtx_3090 = 1  # Change this to the desired number for RTX 3090
@@ -126,30 +125,30 @@ if __name__ == '__main__':
     orders_fulfilled_rtx_3090 = 0
     
     while orders_fulfilled_rtx_3060 < orders_to_fulfill_rtx_3060 or orders_fulfilled_rtx_3090 < orders_to_fulfill_rtx_3090:
- # Check for RTX 3060 orders
-if orders_fulfilled_rtx_3060 < orders_to_fulfill_rtx_3060:
-    listings_rtx_3060 = get_listings(api_key, ignore_machine_ids, 'RTX 3060', max_price_rtx_3060)
-    if listings_rtx_3060:
-        listing_id = listings_rtx_3060[0]['id']  # Choose the first listing (or a suitable one)
-        order_data = place_order(api_key, listing_id)
-        if order_data:
-            log_highlighted_order_placement(logging, f'Order placed for RTX 3060: {order_data}')
-            orders_fulfilled_rtx_3060 += 1
-            instance_id = order_data.get('instance_id', '')
+        # Check for RTX 3060 orders
+        if orders_fulfilled_rtx_3060 < orders_to_fulfill_rtx_3060:
+            listings_rtx_3060 = get_listings(api_key, ignore_machine_ids, 'RTX 3060', max_price_rtx_3060)
+            if listings_rtx_3060:
+                listing_id = listings_rtx_3060[0]['id']  # Choose the first listing (or a suitable one)
+                order_data = place_order(api_key, listing_id)
+                if order_data:
+                    log_highlighted_order_placement(logging, f'Order placed for RTX 3060: {order_data}')
+                    orders_fulfilled_rtx_3060 += 1
+                    instance_id = order_data.get('instance_id', '')
 
-            if instance_id:
-                subprocess.run(['bash', 'create_instance.sh', instance_id])
+                    if instance_id:
+                        subprocess.run(['bash', 'create_instance.sh', instance_id])
 
-# Check for RTX 3090 orders
-if orders_fulfilled_rtx_3090 < orders_to_fulfill_rtx_3090:
-    listings_rtx_3090 = get_listings(api_key, ignore_machine_ids, 'RTX 3090', max_price_rtx_3090)
-    if listings_rtx_3090:
-        listing_id = listings_rtx_3090[0]['id']  # Choose the first listing (or a suitable one)
-        order_data = place_order(api_key, listing_id)
-        if order_data:
-            log_highlighted_order_placement(logging, f'Order placed for RTX 3090: {order_data}')
-            orders_fulfilled_rtx_3090 += 1
-            instance_id = order_data.get('instance_id', '')
+        # Check for RTX 3090 orders
+        if orders_fulfilled_rtx_3090 < orders_to_fulfill_rtx_3090:
+            listings_rtx_3090 = get_listings(api_key, ignore_machine_ids, 'RTX 3090', max_price_rtx_3090)
+            if listings_rtx_3090:
+                listing_id = listings_rtx_3090[0]['id']  # Choose the first listing (or a suitable one)
+                order_data = place_order(api_key, listing_id)
+                if order_data:
+                    log_highlighted_order_placement(logging, f'Order placed for RTX 3090: {order_data}')
+                    orders_fulfilled_rtx_3090 += 1
+                    instance_id = order_data.get('instance_id', '')
 
-            if instance_id:
-                subprocess.run(['bash', 'create_instance.sh', instance_id])
+                    if instance_id:
+                        subprocess.run(['bash', 'create_instance.sh', instance_id])
