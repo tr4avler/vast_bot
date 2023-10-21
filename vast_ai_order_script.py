@@ -4,8 +4,6 @@ import logging
 import threading
 import subprocess  # Import the subprocess module
 
-# Replace 'YOUR_API_KEY' with your Vast.ai API key
-api_key = 'key_here'
 
 # Define the number of orders to fulfill for RTX 3060 and RTX 3090 separately
 orders_to_fulfill_rtx_3060 = 2  # Change this to the desired number for RTX 3060
@@ -23,6 +21,20 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
+
+# Specify the API key file
+api_key_file = 'api_key.txt'  # The file containing your API key
+
+# Read the API key from the file
+try:
+    with open(api_key_file, 'r') as file:
+        api_key = file.read().strip()
+except FileNotFoundError:
+    print(f"API key file '{api_key_file}' not found.")
+    exit(1)
+except Exception as e:
+    print(f"Error reading API key: {e}")
+    exit(1)
 
 # Define the maximum price for RTX 3060 listings
 max_price_rtx_3060 = 0.045  # Set your desired maximum price for RTX 3060 here
