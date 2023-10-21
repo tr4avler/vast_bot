@@ -42,7 +42,7 @@ max_price_rtx_3060 = 0.045  # Set your desired maximum price for RTX 3060 here
 max_price_rtx_3090 = 0.09  # Set your desired maximum price for RTX 3090 here
 
 # Define the API endpoints
-base_url = 'https://api.vast.ai'
+base_url = 'https://console.vast.ai/api/v0'
 balance_endpoint = '/balance'
 listing_endpoint = '/listings'
 order_endpoint = '/order'
