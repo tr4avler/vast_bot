@@ -2,7 +2,7 @@ import requests
 import logging
 import time
 
-# Constants
+# Constantsqq
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
@@ -14,7 +14,7 @@ SEARCH_CRITERIA = {
     "gpu_name": {"eq": "RTX 3060"},
     "dph_total": {"lte": 0.045},  
     "cuda_max_good": {"gte": 12},
-    "type": "on-demand"
+    "type": "on-demand",
     "intended_status": "running"
 }
 IGNORE_MACHINE_IDS = []
