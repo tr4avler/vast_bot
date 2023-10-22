@@ -20,14 +20,14 @@ except Exception as e:
     exit(1)
 
 # Define your conditions
-desired_gpu_name = 'RTX_3060'
-desired_verified = 'any'  # Any value (including True and other non-False values) for the 'verified' field
+desired_gpu_name = 'RTX 4090'
 desired_max_dph = 0.045  # Maximum DPH desired
 desired_min_cuda_version = 12  # Minimum CUDA version desired
+desired_verified = 'verified'  # Desired verification status
 
 # Define the image and disk size you want for the instance
-desired_image = 'nvidia/cuda:12.0.1-devel-ubuntu20.04'
-desired_disk_size = 3
+desired_image = 'pytorch/pytorch:latest'
+desired_disk_size = 20  # Adjust to your preference
 
 # Define the balance check interval (in seconds)
 balance_check_interval = 3600  # Set to check every hour
@@ -46,32 +46,33 @@ successful_orders = 0
 while successful_orders < max_successful_orders:
     try:
         # Make a request to the Vast.ai API to get your account balance
-        response = requests.get('https://console.vast.ai/api/v0/user', headers={'Authorization': f'Bearer {api_key}'})
-        if response.status_code == 200:
-            balance_data = response.json()
-            balance = balance_data.get('balance', 'N/A')
+        balance_response = requests.get('https://console.vast.ai/api/v0/users/current', params={'api_key': api_key})
+        
+        if balance_response.status_code == 200:
+            balance_data = balance_response.json()
+            balance = balance_data.get('instances', [])
             logging.info(f'Account Balance: {balance} VST')
         else:
-            logging.error(f'API request for account balance failed with status code {response.status_code}')
-            logging.error(f'Response content: {response.text}')
+            logging.error(f'API request for account balance failed with status code {balance_response.status_code}')
+            logging.error(f'Response content: {balance_response.text}')
 
         # Make a request to the Vast.ai API to search for offers
-        query = f"gpu_name={desired_gpu_name} verified={desired_verified} dph <= {desired_max_dph} type.cudaver >= {desired_min_cuda_version}"
-        response = requests.get(f'https://console.vast.ai/api/v0/searchoffers?q={query}')
-        
+        query = f"gpu_name={desired_gpu_name} verified={desired_verified} dph_base <= {desired_max_dph} type.cudaver >= {desired_min_cuda_version}"
+        response = requests.get('https://console.vast.ai/api/v0/search/offers', params={'q': query})
+
         if response.status_code == 200:
             offers = response.json()
 
             for offer in offers:
                 # Check if the offer meets your conditions
-                gpu_name = offer['type']['gpu_name']
-                verified = offer['type']['verified']
-                dph = offer['dph']
-                machine_id = offer['id']
+                gpu_name = offer['gpu_name']
+                verified = offer['verification']
+                dph = offer['dph_base']
+                machine_id = offer['machine_id']
 
                 if (
                     gpu_name == desired_gpu_name and 
-                    (desired_verified == 'any' or verified) and  # Updated condition for 'verified'
+                    verified == desired_verified and 
                     dph <= desired_max_dph and 
                     machine_id not in ignore_machine_ids
                 ):
