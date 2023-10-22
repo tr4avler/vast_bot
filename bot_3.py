@@ -2,11 +2,11 @@ import requests
 import logging
 import time
 
-# Constantsaaa
+# Constants
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
-MAX_ORDERS = 4
+MAX_ORDERS = 3
 SEARCH_CRITERIA = {
     "verified": {},
     "external": {"eq": False},
@@ -68,10 +68,15 @@ def search_gpu(successful_orders_count):
     headers = {'Accept': 'application/json'}
     response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
     if response.status_code == 200:
-        dph_criteria = SEARCH_CRITERIA.get("cuda_max_good", {}).get("gte")
-        logging.info("==============================")
-        logging.info(f"--->\nOffers check: SUCCESS\nDPH: {SEARCH_CRITERIA.get('dph_total', {}).get('lte')}\nPlaced orders: {successful_orders_count}")
+        dph_criteria = SEARCH_CRITERIA.get("dph_total", {}).get("lte")
+        
         try:
+            offers = response.json().get('offers', [])
+            not_meeting_dph_count = sum(1 for offer in offers if offer.get('dph_total') > dph_criteria)
+            
+            logging.info("==============================")
+            logging.info(f"--->\nOffers check: SUCCESS\nDPH: {dph_criteria}\nPlaced orders: {successful_orders_count}\nOffers not meeting DPH: {not_meeting_dph_count}")
+            
             return response.json()
         except Exception as e:
             logging.error(f"Failed to parse JSON from API response during offers check: {e}")
@@ -79,6 +84,7 @@ def search_gpu(successful_orders_count):
     else:
         logging.error(f"Offers check failed. Status code: {response.status_code}. Response: {response.text}")
         return {}
+
 
 def place_order(offer_id):
     url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={api_key}"
