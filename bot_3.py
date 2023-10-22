@@ -12,7 +12,7 @@ SEARCH_CRITERIA = {
     "external": {"eq": False},
     "rentable": {"eq": True},
     "gpu_name": {"eq": "RTX 3060"},
-    "price": {"lte": 0.045},
+    "price": {"lte": 0.053},
     "cuda_max_good": {"gte": 12},
     "type": "on-demand"
 }
@@ -77,6 +77,11 @@ def search_gpu():
         logging.error(f"Initial offers check failed. Status code: {response.status_code}. Response: {response.text}")
         return {}
 
+def is_offer_valid(offer):
+    """Check if the offer is valid based on criteria."""
+    price = offer.get('price', float('inf'))  # default to a very high price if not found
+    return price <= SEARCH_CRITERIA['price']['lte']
+
 def place_order(offer_id):
     url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={api_key}"
     payload = {
@@ -108,7 +113,7 @@ while successful_orders < MAX_ORDERS:
     offers = search_gpu().get('offers', [])
     for offer in offers:
         machine_id = offer.get('machine_id')
-        if machine_id not in IGNORE_MACHINE_IDS:
+        if machine_id not in IGNORE_MACHINE_IDS and is_offer_valid(offer):
             response = place_order(offer["id"])
             if response.get('success'):
                 logging.info(f"Successfully placed order for machine_id: {machine_id}")
