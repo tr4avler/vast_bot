@@ -49,14 +49,19 @@ def test_api_connection():
     except Exception as e:
         logging.error(f"Error connecting to API: {e}")
 
-def check_balance():
+def get_user_details():
     url = f"https://console.vast.ai/api/v0/users/current?api_key={api_key}"
     headers = {'Accept': 'application/json'}
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
-        data = response.json()
-        return data.get('balance', 0)
-    return 0
+        try:
+            return response.json()
+        except Exception as e:
+            logging.error(f"Failed to parse JSON from user details API response: {e}. Response text: {response.text}")
+            return {}
+    else:
+        logging.error(f"User details API returned an error. Status code: {response.status_code}. Response: {response.text}")
+        return {}
 
 def search_gpu():
     url = "https://console.vast.ai/api/v0/bundles/"
@@ -88,8 +93,11 @@ def place_order(offer_id):
 test_api_connection()
 
 # Fetch and log user details
-initial_balance = check_balance()
-logging.info(f"User initialized with a balance of ${initial_balance:.2f}")
+user_details = get_user_details()
+if user_details:
+    logging.info(f"User '{user_details.get('email', 'Unknown')}' initialized with a balance of ${user_details.get('balance', 'Unknown'):.2f}")
+else:
+    logging.error("Failed to fetch user details. Check API connectivity and credentials.")
 
 # Main Loop
 last_balance_log_time = time.time()
@@ -110,14 +118,4 @@ while successful_orders < MAX_ORDERS:
             else:
                 logging.error(f"Failed to place order for machine_id: {machine_id}. Reason: {response.get('msg')}")
 
-    # Log balance and successful orders count every 5 minutes
-    current_time = time.time()
-    if current_time - last_balance_log_time >= BALANCE_LOG_INTERVAL:
-        balance = check_balance()
-        logging.info(f"Current balance: ${balance:.2f}")
-        logging.info(f"Number of successful orders: {successful_orders}")
-        last_balance_log_time = current_time
-
-    time.sleep(CHECK_INTERVAL)
-
-logging.info("Script finished execution.")
+    # Log balance and successful orders count every
