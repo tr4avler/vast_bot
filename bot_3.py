@@ -2,9 +2,9 @@ import requests
 import logging
 import time
 
-# Constantswer
+# Constants1111
 API_KEY_FILE = 'api_key.txt'
-CHECK_INTERVAL = 120  # 2 minutes
+CHECK_INTERVAL = 65  # 1 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
 MAX_ORDERS = 4
 SEARCH_CRITERIA = {
@@ -67,8 +67,8 @@ def search_gpu():
     headers = {'Accept': 'application/json'}
     response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
     if response.status_code == 200:
-        price_criteria = SEARCH_CRITERIA.get("price", {}).get("lte")
-        logging.info(f"Initial offers check went successfully. Price criteria: ${price_criteria}")
+        dph_criteria = SEARCH_CRITERIA.get("cuda_max_good", {}).get("gte")
+        logging.info(f"Initial offers check went successfully. dph criteria: {dph_criteria}")
         try:
             return response.json()
         except Exception as e:
@@ -104,6 +104,10 @@ else:
 # Main Loop
 last_balance_log_time = time.time()
 successful_orders = 0
+
+# Add a 10-second delay before the first attempt
+logging.info("Waiting for 10 seconds before the first attempt to check offers...")
+time.sleep(10)
 
 while successful_orders < MAX_ORDERS:
     offers = search_gpu().get('offers', [])
