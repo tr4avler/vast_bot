@@ -2,9 +2,9 @@ import requests
 import logging
 import time
 
-# Constants1111
+# Constantsqq
 API_KEY_FILE = 'api_key.txt'
-CHECK_INTERVAL = 65  # 1 minutes
+CHECK_INTERVAL = 120  # 2 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
 MAX_ORDERS = 4
 SEARCH_CRITERIA = {
@@ -12,7 +12,7 @@ SEARCH_CRITERIA = {
     "external": {"eq": False},
     "rentable": {"eq": True},
     "gpu_name": {"eq": "RTX 3060"},
-    "dph_total": {"lte": 0.056},  # Replace "price" with "dph_total"
+    "dph_total": {"lte": 0.045},  
     "cuda_max_good": {"gte": 12},
     "type": "on-demand"
 }
@@ -68,7 +68,8 @@ def search_gpu():
     response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
     if response.status_code == 200:
         dph_criteria = SEARCH_CRITERIA.get("cuda_max_good", {}).get("gte")
-        logging.info(f"Initial offers check went successfully. dph criteria: {dph_criteria}")
+        logging.info(f"Initial offers check went successfully. DPH criteria: {dph_criteria}")
+        logging.info(f"Initial offers check went successfully. DPH criteria: {dph_criteria}")
         try:
             return response.json()
         except Exception as e:
