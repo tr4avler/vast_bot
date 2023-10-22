@@ -2,7 +2,7 @@ import requests
 import logging
 import time
 
-# Constants211212
+# Constantsqqqq
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
@@ -73,18 +73,11 @@ def search_gpu(successful_orders_count):
         try:
             offers = response.json().get('offers', [])
             
-            # Log the raw API response for inspection
-            logging.info(f"API response: {response.text}")
-
-            # Logging all DPH values to inspect
-            all_dph_values = [offer.get('dph_total', 0) for offer in offers]
-            logging.info(f"All DPH values from offers: {all_dph_values}")
-
-            # Ensure 'dph_total' exists in the offer and that it exceeds the dph_criteria
-            not_meeting_dph_count = sum(1 for offer in offers if offer.get('dph_total', 0) > dph_criteria)
+            # Determine how many of the offers have a dph higher than the criteria
+            offers_exceeding_dph = sum(1 for offer in offers if offer.get('dph_total', 0) > dph_criteria)
             
             logging.info("==============================")
-            logging.info(f"--->\nOffers check: SUCCESS\nDPH Target: {dph_criteria}\nPlaced orders: {successful_orders_count}\nOffers not meeting DPH criteria: {not_meeting_dph_count}")
+            logging.info(f"--->\nOffers check: SUCCESS\nDPH Target: {dph_criteria}\nPlaced orders: {successful_orders_count}\nOffers exceeding DPH: {offers_exceeding_dph}")
             
             return response.json()
         except Exception as e:
@@ -93,6 +86,7 @@ def search_gpu(successful_orders_count):
     else:
         logging.error(f"Offers check failed. Status code: {response.status_code}. Response: {response.text}")
         return {}
+
 
 def place_order(offer_id):
     url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={api_key}"
