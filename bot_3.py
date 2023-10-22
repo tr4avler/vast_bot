@@ -37,6 +37,18 @@ except Exception as e:
     exit(1)
 
 # Define Functions
+def test_api_connection():
+    """Function to test the API connection."""
+    test_url = "https://console.vast.ai/api/v0/"
+    try:
+        response = requests.get(test_url, headers={"Accept": "application/json"})
+        if response.status_code == 200:
+            logging.info("Connection with API established and working fine.")
+        else:
+            logging.error(f"Error connecting to API. Status code: {response.status_code}. Response: {response.text}")
+    except Exception as e:
+        logging.error(f"Error connecting to API: {e}")
+
 def check_balance():
     url = f"https://console.vast.ai/api/v0/accounts/me/?api_key={api_key}"
     response = requests.get(url)
@@ -61,6 +73,9 @@ def place_order(offer_id):
     headers = {'Accept': 'application/json'}
     response = requests.put(url, headers=headers, json=payload)
     return response.json()
+
+# Test API connection first
+test_api_connection()
 
 # Main Loop
 last_balance_log_time = time.time()
