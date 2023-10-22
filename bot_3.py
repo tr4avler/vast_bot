@@ -2,11 +2,11 @@ import requests
 import logging
 import time
 
-# Constantsww
+# Constantswww
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
-MAX_ORDERS = 4
+MAX_ORDERS = 2
 SEARCH_CRITERIA = {
     "verified": {},
     "external": {"eq": False},
@@ -68,9 +68,16 @@ def search_gpu():
     response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
     if response.status_code == 200:
         price_criteria = SEARCH_CRITERIA.get("price", {}).get("lte")
-        logging.info(f"Initial offers check went successfully. Price criteria: ${price_criteria}")
+        logging.info(f"Initial offers check went successfully. Price criteria: ${price_criteria:.3f}")
         try:
-            return response.json()
+            offers = response.json().get('offers', [])
+            valid_offers = []
+            for offer in offers:
+                machine_id = offer.get('machine_id')
+                price = offer.get('price', float('inf'))
+                if machine_id not in IGNORE_MACHINE_IDS and price <= price_criteria:
+                    valid_offers.append(offer)
+            return {"offers": valid_offers}
         except Exception as e:
             logging.error(f"Failed to parse JSON from API response during offers check: {e}")
             return {}
