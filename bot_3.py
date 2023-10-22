@@ -80,7 +80,10 @@ def search_gpu():
 def is_offer_valid(offer):
     """Check if the offer is valid based on criteria."""
     price = offer.get('price', float('inf'))  # default to a very high price if not found
-    return price <= SEARCH_CRITERIA['price']['lte']
+    valid = price <= SEARCH_CRITERIA['price']['lte']
+    if not valid:
+        logging.info(f"Offer for machine_id: {offer.get('machine_id')} with price ${price:.3f} is not valid based on search criteria.")
+    return valid
 
 def place_order(offer_id):
     url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={api_key}"
@@ -113,16 +116,17 @@ while successful_orders < MAX_ORDERS:
     offers = search_gpu().get('offers', [])
     for offer in offers:
         machine_id = offer.get('machine_id')
-        if machine_id not in IGNORE_MACHINE_IDS and is_offer_valid(offer):
-            response = place_order(offer["id"])
-            if response.get('success'):
-                logging.info(f"Successfully placed order for machine_id: {machine_id}")
-                successful_orders += 1
-                if successful_orders >= MAX_ORDERS:
-                    logging.info("Maximum order limit reached. Exiting...")
-                    exit(0)
-            else:
-                logging.error(f"Failed to place order for machine_id: {machine_id}. Reason: {response.get('msg')}")
+        if machine_id not in IGNORE_MACHINE_IDS:
+            if is_offer_valid(offer):
+                response = place_order(offer["id"])
+                if response.get('success'):
+                    logging.info(f"Successfully placed order for machine_id: {machine_id}")
+                    successful_orders += 1
+                    if successful_orders >= MAX_ORDERS:
+                        logging.info("Maximum order limit reached. Exiting...")
+                        exit(0)
+                else:
+                    logging.error(f"Failed to place order for machine_id: {machine_id}. Reason: {response.get('msg')}")
 
     # Log balance and successful orders count every 5 minutes
     current_time = time.time()
