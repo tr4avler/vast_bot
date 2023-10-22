@@ -4,7 +4,7 @@ import time
 
 # Constants
 API_KEY_FILE = 'api_key.txt'
-CHECK_INTERVAL = 60  # 1 minute
+CHECK_INTERVAL = 120  # 2 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
 MAX_ORDERS = 4
 SEARCH_CRITERIA = {
@@ -14,7 +14,6 @@ SEARCH_CRITERIA = {
     "gpu_name": {"eq": "RTX 3060"},
     "price": {"lte": 0.045},
     "cuda_max_good": {"gte": 12},
-    "order": [["price", "asc"]],
     "type": "on-demand"
 }
 IGNORE_MACHINE_IDS = []
@@ -95,7 +94,9 @@ test_api_connection()
 # Fetch and log user details
 user_details = get_user_details()
 if user_details:
-    logging.info(f"User '{user_details.get('email', 'Unknown')}' initialized with a balance of ${user_details.get('balance', 'Unknown'):.2f}")
+    email = user_details.get('email', 'Unknown')
+    balance = user_details.get('balance', '0.00')
+    logging.info(f"User '{email}' initialized with a balance of ${balance:.2f}")
 else:
     logging.error("Failed to fetch user details. Check API connectivity and credentials.")
 
@@ -118,4 +119,14 @@ while successful_orders < MAX_ORDERS:
             else:
                 logging.error(f"Failed to place order for machine_id: {machine_id}. Reason: {response.get('msg')}")
 
-    # Log balance and successful orders count every
+    # Log balance and successful orders count every 5 minutes
+    current_time = time.time()
+    if current_time - last_balance_log_time >= BALANCE_LOG_INTERVAL:
+        # TODO: Consider fetching the balance again for an updated figure
+        logging.info(f"Current balance: ${balance:.2f}")
+        logging.info(f"Number of successful orders: {successful_orders}")
+        last_balance_log_time = current_time
+
+    time.sleep(CHECK_INTERVAL)
+
+logging.info("Script finished execution.")
