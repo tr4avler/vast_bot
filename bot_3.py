@@ -4,17 +4,16 @@ import time
 
 # Constants
 API_KEY_FILE = 'api_key.txt'
-CHECK_INTERVAL = 60  # 1 minute
+CHECK_INTERVAL = 120  # 2 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
-MAX_ORDERS = 2
+MAX_ORDERS = 4
 SEARCH_CRITERIA = {
     "verified": {},
     "external": {"eq": False},
     "rentable": {"eq": True},
     "gpu_name": {"eq": "RTX 3060"},
-    "price": {"lte": 0.06},
+    "price": {"lte": 0.045},
     "cuda_max_good": {"gte": 12},
-    "order": [["price", "asc"]],
     "type": "on-demand"
 }
 IGNORE_MACHINE_IDS = []
@@ -78,11 +77,7 @@ def search_gpu():
         logging.error(f"Initial offers check failed. Status code: {response.status_code}. Response: {response.text}")
         return {}
 
-def place_order(offer_id, offer_price):
-    if offer_price > SEARCH_CRITERIA['price']['lte']:
-        logging.warning(f"Skipping order for offer_id: {offer_id} as the price {offer_price} is above the defined limit.")
-        return {'success': False, 'msg': 'Price out of range'}
-    
+def place_order(offer_id):
     url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={api_key}"
     payload = {
         "client_id": "me",
@@ -99,7 +94,9 @@ test_api_connection()
 # Fetch and log user details
 user_details = get_user_details()
 if user_details:
-    logging.info(f"User '{user_details.get('email', 'Unknown')}' initialized with a balance of ${user_details.get('balance', 'Unknown'):.2f}")
+    email = user_details.get('email', 'Unknown')
+    balance = user_details.get('balance', '0.00')
+    logging.info(f"User '{email}' initialized with a balance of ${balance:.2f}")
 else:
     logging.error("Failed to fetch user details. Check API connectivity and credentials.")
 
@@ -111,9 +108,8 @@ while successful_orders < MAX_ORDERS:
     offers = search_gpu().get('offers', [])
     for offer in offers:
         machine_id = offer.get('machine_id')
-        offer_price = float(offer.get('price', 0))
         if machine_id not in IGNORE_MACHINE_IDS:
-            response = place_order(offer["id"], offer_price)
+            response = place_order(offer["id"])
             if response.get('success'):
                 logging.info(f"Successfully placed order for machine_id: {machine_id}")
                 successful_orders += 1
@@ -126,7 +122,7 @@ while successful_orders < MAX_ORDERS:
     # Log balance and successful orders count every 5 minutes
     current_time = time.time()
     if current_time - last_balance_log_time >= BALANCE_LOG_INTERVAL:
-        balance = user_details.get('balance', 0)  # Get balance from user details instead
+        # TODO: Consider fetching the balance again for an updated figure
         logging.info(f"Current balance: ${balance:.2f}")
         logging.info(f"Number of successful orders: {successful_orders}")
         last_balance_log_time = current_time
