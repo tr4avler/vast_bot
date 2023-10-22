@@ -2,7 +2,7 @@ import requests
 import logging
 import time
 
-# Constantsdddd
+# Constantssdds
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
@@ -12,7 +12,7 @@ SEARCH_CRITERIA = {
     "external": {"eq": False},
     "rentable": {"eq": True},
     "gpu_name": {"eq": "RTX 3060"},
-    "dph_total": {"lte": 0.044},  
+    "dph_total": {"lte": 0.045},  
     "cuda_max_good": {"gte": 12},
     "type": "on-demand",
     "intended_status": "running"
@@ -68,17 +68,9 @@ def search_gpu(successful_orders_count):
     headers = {'Accept': 'application/json'}
     response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
     if response.status_code == 200:
-        dph_criteria = SEARCH_CRITERIA.get("dph_total", {}).get("lte")
-        
+        dph_criteria = SEARCH_CRITERIA.get("cuda_max_good", {}).get("gte")
+        logging.info(f"Offers check went successfully. DPH criteria: {SEARCH_CRITERIA.get('dph_total', {}).get('lte')}. Number of successful orders: {successful_orders_count}")
         try:
-            offers = response.json().get('offers', [])
-            
-            # Determine how many of the offers have a dph higher than the criteria
-            offers_exceeding_dph = sum(1 for offer in offers if offer.get('dph_total', 0) > dph_criteria)
-            
-            logging.info("==============================")
-            logging.info(f"--->\nOffers check: SUCCESS\nDPH Target: {dph_criteria}\nPlaced orders: {successful_orders_count}\nOffers exceeding DPH: {offers_exceeding_dph}")
-            
             return response.json()
         except Exception as e:
             logging.error(f"Failed to parse JSON from API response during offers check: {e}")
@@ -86,7 +78,6 @@ def search_gpu(successful_orders_count):
     else:
         logging.error(f"Offers check failed. Status code: {response.status_code}. Response: {response.text}")
         return {}
-
 
 def place_order(offer_id):
     url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={api_key}"
@@ -138,6 +129,7 @@ while successful_orders < MAX_ORDERS:
     current_time = time.time()
     if current_time - last_balance_log_time >= BALANCE_LOG_INTERVAL:
         # TODO: Consider fetching the balance again for an updated figure
+        logging.info(f"Current balance: ${balance:.2f}")
         logging.info(f"Number of successful orders: {successful_orders}")
         last_balance_log_time = current_time
 
