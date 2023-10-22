@@ -46,11 +46,14 @@ successful_orders = 0
 while successful_orders < max_successful_orders:
     try:
         # Make a request to the Vast.ai API to get your account balance
-        balance_response = requests.get('https://console.vast.ai/api/v0/user', headers={'Authorization': f'Bearer {api_key}'})
-        if balance_response.status_code == 200:
-            balance_data = balance_response.json()
+        response = requests.get('https://console.vast.ai/api/v0/user', headers={'Authorization': f'Bearer {api_key}'})
+        if response.status_code == 200:
+            balance_data = response.json()
             balance = balance_data.get('balance', 'N/A')
             logging.info(f'Account Balance: {balance} VST')
+        else:
+            logging.error(f'API request for account balance failed with status code {response.status_code}')
+            logging.error(f'Response content: {response.text}')
 
         # Make a request to the Vast.ai API to search for offers
         query = f"gpu_name={desired_gpu_name} verified={desired_verified} dph <= {desired_max_dph} type.cudaver >= {desired_min_cuda_version}"
@@ -100,7 +103,10 @@ while successful_orders < max_successful_orders:
                             logging.error('Failed to create an instance:', response.status_code)
                     else:
                         logging.error('Failed to place an order:', response.status_code)
-        
+        else:
+            logging.error(f'API request for offers failed with status code {response.status_code}')
+            logging.error(f'Response content: {response.text}')
+
         if successful_orders >= max_successful_orders:
             logging.info(f'Stopping script after {max_successful_orders} successful orders.')
             break
