@@ -2,7 +2,7 @@ import requests
 import logging
 import time
 
-# Constants222
+# Constants1
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
@@ -12,7 +12,7 @@ SEARCH_CRITERIA = {
     "external": {"eq": False},
     "rentable": {"eq": True},
     "gpu_name": {"eq": "RTX 3060"},
-    "price": {"lte": 0.055},
+    "dph_total": {"lte": 0.055},  # Replace "price" with "dph_total"
     "cuda_max_good": {"gte": 12},
     "type": "on-demand"
 }
@@ -68,21 +68,9 @@ def search_gpu():
     response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
     if response.status_code == 200:
         price_criteria = SEARCH_CRITERIA.get("price", {}).get("lte")
-        logging.info(f"Initial offers check went successfully. Price criteria: ${price_criteria:.3f}")
+        logging.info(f"Initial offers check went successfully. Price criteria: ${price_criteria}")
         try:
-            offers = response.json().get('offers', [])
-            valid_offers = []
-            for offer in offers:
-                machine_id = offer.get('machine_id')
-                price = offer.get('price')
-                if price is None or not isinstance(price, (int, float)):
-                    logging.info(f"Skipping offer for machine_id: {machine_id}, price is not available or invalid.")
-                    continue
-                logging.info(f"Checking offer for machine_id: {machine_id}, price: ${price:.3f}")
-                if price <= price_criteria:
-                    valid_offers.append(offer)
-                    logging.info(f"Offer meets price criteria. Adding to valid offers.")
-            return {"offers": valid_offers}
+            return response.json()
         except Exception as e:
             logging.error(f"Failed to parse JSON from API response during offers check: {e}")
             return {}
