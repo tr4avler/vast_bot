@@ -61,6 +61,10 @@ def search_gpu():
     url = "https://console.vast.ai/api/v0/bundles/"
     headers = {'Accept': 'application/json'}
     response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
+    if response.status_code == 200:
+        logging.info("Initial offers check went successfully.")
+    else:
+        logging.error(f"Initial offers check failed. Status code: {response.status_code}. Response: {response.text}")
     return response.json()
 
 def place_order(offer_id):
@@ -76,6 +80,10 @@ def place_order(offer_id):
 
 # Test API connection first
 test_api_connection()
+
+# Log initial balance
+initial_balance = check_balance()
+logging.info(f"Starting with a balance of ${initial_balance:.2f}")
 
 # Main Loop
 last_balance_log_time = time.time()
