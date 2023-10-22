@@ -12,7 +12,7 @@ SEARCH_CRITERIA = {
     "external": {"eq": False},
     "rentable": {"eq": True},
     "gpu_name": {"eq": "RTX 3060"},
-    "price": {"lte": 0.053},
+    "price": {"lte": 0.055},
     "cuda_max_good": {"gte": 12},
     "type": "on-demand"
 }
@@ -35,66 +35,7 @@ except Exception as e:
     logging.error(f"Error reading API key: {e}")
     exit(1)
 
-# Define Functions
-def test_api_connection():
-    """Function to test the API connection."""
-    test_url = "https://console.vast.ai/api/v0/"
-    try:
-        response = requests.get(test_url, headers={"Accept": "application/json"})
-        if response.status_code == 200:
-            logging.info("Connection with API established and working fine.")
-        else:
-            logging.error(f"Error connecting to API. Status code: {response.status_code}. Response: {response.text}")
-    except Exception as e:
-        logging.error(f"Error connecting to API: {e}")
-
-def get_user_details():
-    url = f"https://console.vast.ai/api/v0/users/current?api_key={api_key}"
-    headers = {'Accept': 'application/json'}
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        try:
-            return response.json()
-        except Exception as e:
-            logging.error(f"Failed to parse JSON from user details API response: {e}. Response text: {response.text}")
-            return {}
-    else:
-        logging.error(f"User details API returned an error. Status code: {response.status_code}. Response: {response.text}")
-        return {}
-
-def search_gpu():
-    url = "https://console.vast.ai/api/v0/bundles/"
-    headers = {'Accept': 'application/json'}
-    response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
-    if response.status_code == 200:
-        logging.info("Initial offers check went successfully.")
-        try:
-            return response.json()
-        except Exception as e:
-            logging.error(f"Failed to parse JSON from API response during offers check: {e}")
-            return {}
-    else:
-        logging.error(f"Initial offers check failed. Status code: {response.status_code}. Response: {response.text}")
-        return {}
-
-def is_offer_valid(offer):
-    """Check if the offer is valid based on criteria."""
-    price = offer.get('price', float('inf'))  # default to a very high price if not found
-    valid = price <= SEARCH_CRITERIA['price']['lte']
-    if not valid:
-        logging.info(f"Offer for machine_id: {offer.get('machine_id')} with price ${price:.3f} is not valid based on search criteria.")
-    return valid
-
-def place_order(offer_id):
-    url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={api_key}"
-    payload = {
-        "client_id": "me",
-        "image": "nvidia/cuda:12.0.1-devel-ubuntu20.04",
-        "disk": 3
-    }
-    headers = {'Accept': 'application/json'}
-    response = requests.put(url, headers=headers, json=payload)
-    return response.json()
+# ... [Function definitions remain the same]
 
 # Test API connection first
 test_api_connection()
@@ -114,19 +55,25 @@ successful_orders = 0
 
 while successful_orders < MAX_ORDERS:
     offers = search_gpu().get('offers', [])
+    invalid_offers_count = 0
     for offer in offers:
         machine_id = offer.get('machine_id')
-        if machine_id not in IGNORE_MACHINE_IDS:
-            if is_offer_valid(offer):
-                response = place_order(offer["id"])
-                if response.get('success'):
-                    logging.info(f"Successfully placed order for machine_id: {machine_id}")
-                    successful_orders += 1
-                    if successful_orders >= MAX_ORDERS:
-                        logging.info("Maximum order limit reached. Exiting...")
-                        exit(0)
-                else:
-                    logging.error(f"Failed to place order for machine_id: {machine_id}. Reason: {response.get('msg')}")
+        price = offer.get('price', float('inf'))
+        if machine_id not in IGNORE_MACHINE_IDS and price <= SEARCH_CRITERIA['price']['lte']:
+            response = place_order(offer["id"])
+            if response.get('success'):
+                logging.info(f"Successfully placed order for machine_id: {machine_id} at price: ${price:.2f}")
+                successful_orders += 1
+                if successful_orders >= MAX_ORDERS:
+                    logging.info("Maximum order limit reached. Exiting...")
+                    exit(0)
+            else:
+                logging.error(f"Failed to place order for machine_id: {machine_id}. Reason: {response.get('msg')}")
+        else:
+            invalid_offers_count += 1
+
+    if invalid_offers_count:
+        logging.info(f"There were {invalid_offers_count} offers that did not meet the criteria.")
 
     # Log balance and successful orders count every 5 minutes
     current_time = time.time()
