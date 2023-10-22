@@ -2,7 +2,7 @@ import requests
 import logging
 import time
 
-# Constants11
+# Constants222
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
@@ -74,14 +74,14 @@ def search_gpu():
             valid_offers = []
             for offer in offers:
                 machine_id = offer.get('machine_id')
-                price = offer.get('price', float('inf'))
-                if machine_id not in IGNORE_MACHINE_IDS:
-                    logging.info(f"Checking offer for machine_id: {machine_id}, price: ${price:.3f}")
-                    if price <= price_criteria:
-                        valid_offers.append(offer)
-                        logging.info(f"Offer meets price criteria. Adding to valid offers.")
-                    else:
-                        logging.info(f"Offer price exceeds criteria. Skipping.")
+                price = offer.get('price')
+                if price is None or not isinstance(price, (int, float)):
+                    logging.info(f"Skipping offer for machine_id: {machine_id}, price is not available or invalid.")
+                    continue
+                logging.info(f"Checking offer for machine_id: {machine_id}, price: ${price:.3f}")
+                if price <= price_criteria:
+                    valid_offers.append(offer)
+                    logging.info(f"Offer meets price criteria. Adding to valid offers.")
             return {"offers": valid_offers}
         except Exception as e:
             logging.error(f"Failed to parse JSON from API response during offers check: {e}")
