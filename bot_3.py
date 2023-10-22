@@ -2,7 +2,7 @@ import requests
 import logging
 import time
 
-# Constants223
+# Constants11
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
@@ -73,6 +73,9 @@ def search_gpu(successful_orders_count):
         try:
             offers = response.json().get('offers', [])
             
+            # Log the raw API response for inspection
+            logging.info(f"API response: {response.text}")
+
             # Logging all DPH values to inspect
             all_dph_values = [offer.get('dph_total', 0) for offer in offers]
             logging.info(f"All DPH values from offers: {all_dph_values}")
