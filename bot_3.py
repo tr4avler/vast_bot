@@ -2,7 +2,7 @@ import requests
 import logging
 import time
 
-# ConstantsFINAL
+# Constants
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
@@ -15,6 +15,7 @@ SEARCH_CRITERIA = {
     "dph_total": {"lte": 0.045},  
     "cuda_max_good": {"gte": 12},
     "type": "on-demand"
+    "intended_status": "running"
 }
 IGNORE_MACHINE_IDS = []
 
@@ -62,14 +63,13 @@ def get_user_details():
         logging.error(f"User details API returned an error. Status code: {response.status_code}. Response: {response.text}")
         return {}
 
-def search_gpu():
+def search_gpu(successful_orders_count):
     url = "https://console.vast.ai/api/v0/bundles/"
     headers = {'Accept': 'application/json'}
     response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
     if response.status_code == 200:
         dph_criteria = SEARCH_CRITERIA.get("cuda_max_good", {}).get("gte")
-        logging.info(f"Initial offers check went successfully. DPH criteria: {dph_criteria}")
-        logging.info(f"Initial offers check went successfully. DPH criteria: {dph_criteria}")
+        logging.info(f"Initial offers check went successfully. DPH criteria: {SEARCH_CRITERIA.get('dph_total', {}).get('lte')}. Number of successful orders: {successful_orders_count}")
         try:
             return response.json()
         except Exception as e:
@@ -111,7 +111,7 @@ logging.info("Waiting for 10 seconds before the first attempt to check offers...
 time.sleep(10)
 
 while successful_orders < MAX_ORDERS:
-    offers = search_gpu().get('offers', [])
+    offers = search_gpu(successful_orders).get('offers', [])
     for offer in offers:
         machine_id = offer.get('machine_id')
         if machine_id not in IGNORE_MACHINE_IDS:
