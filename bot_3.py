@@ -69,6 +69,7 @@ def search_gpu(successful_orders_count):
     response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
     if response.status_code == 200:
         dph_criteria = SEARCH_CRITERIA.get("cuda_max_good", {}).get("gte")
+        logging.info("==============================")
         logging.info(f"--->\nOffers check: SUCCESS\nDPH: {SEARCH_CRITERIA.get('dph_total', {}).get('lte')}\nPlaced orders: {successful_orders_count}")
         try:
             return response.json()
