@@ -2,7 +2,7 @@ import requests
 import logging
 import time
 
-# Constantsqq
+# ConstantsFINAL
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
