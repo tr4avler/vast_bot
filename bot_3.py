@@ -49,19 +49,14 @@ def test_api_connection():
     except Exception as e:
         logging.error(f"Error connecting to API: {e}")
 
-def get_user_details():
+def check_balance():
     url = f"https://console.vast.ai/api/v0/users/current?api_key={api_key}"
     headers = {'Accept': 'application/json'}
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
-        try:
-            return response.json()
-        except Exception as e:
-            logging.error(f"Failed to parse JSON from user details API response: {e}. Response text: {response.text}")
-            return {}
-    else:
-        logging.error(f"User details API returned an error. Status code: {response.status_code}. Response: {response.text}")
-        return {}
+        data = response.json()
+        return data.get('balance', 0)
+    return 0
 
 def search_gpu():
     url = "https://console.vast.ai/api/v0/bundles/"
@@ -93,11 +88,8 @@ def place_order(offer_id):
 test_api_connection()
 
 # Fetch and log user details
-user_details = get_user_details()
-if user_details:
-    logging.info(f"User '{user_details.get('username', 'Unknown')}' initialized with a balance of ${user_details.get('balance', 'Unknown')}")
-else:
-    logging.error("Failed to fetch user details. Check API connectivity and credentials.")
+initial_balance = check_balance()
+logging.info(f"User initialized with a balance of ${initial_balance:.2f}")
 
 # Main Loop
 last_balance_log_time = time.time()
