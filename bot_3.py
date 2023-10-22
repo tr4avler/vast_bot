@@ -12,7 +12,7 @@ SEARCH_CRITERIA = {
     "external": {"eq": False},
     "rentable": {"eq": True},
     "gpu_name": {"eq": "RTX 3060"},
-    "price": {"lte": 0.052},
+    "price": {"lte": 0.06},
     "cuda_max_good": {"gte": 12},
     "order": [["price", "asc"]],
     "type": "on-demand"
