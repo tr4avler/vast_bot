@@ -61,11 +61,17 @@ def search_gpu():
     url = "https://console.vast.ai/api/v0/bundles/"
     headers = {'Accept': 'application/json'}
     response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
+    
     if response.status_code == 200:
         logging.info("Initial offers check went successfully.")
+        try:
+            return response.json()
+        except Exception as e:
+            logging.error(f"Failed to parse JSON from API response during offers check: {e}")
+            return {}
     else:
         logging.error(f"Initial offers check failed. Status code: {response.status_code}. Response: {response.text}")
-    return response.json()
+        return {}
 
 def place_order(offer_id):
     url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={api_key}"
