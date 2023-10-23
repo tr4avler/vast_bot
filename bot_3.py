@@ -79,25 +79,30 @@ def place_order(offer_id):
     
 def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeout=150, interval=30):
     end_time = time.time() + timeout
+    instance_running = False  # Add a flag to check if instance is running
     while time.time() < end_time:
         url = f"https://console.vast.ai/api/v0/instances/{instance_id}?api_key={api_key}"
         headers = {'Accept': 'application/json'}
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
-            status = response.json()["instances"].get('actual_status', 'unknown')  # This is correct way to accessing the nested dictionary
+            status = response.json()["instances"].get('actual_status', 'unknown')
             if status == "running":
                 logging.info(f"Instance {instance_id} is up and running!")
-                return
+                instance_running = True  # Set the flag to True when instance is running
+                break
             else:
                 logging.info(f"Instance {instance_id} status: {status}. Waiting for next check...")
         else:
             logging.error(f"Error fetching status for instance {instance_id}. Status code: {response.status_code}. Response: {response.text}")
         time.sleep(interval)
-    
-    logging.warning(f"Instance {instance_id} did not start running in the expected time frame. Destroying this instance.")
-    if destroy_instance(instance_id, machine_id, api_key):
-        return False  # Indicate that the instance was destroyed
-    return True  # Indicate that the instance wasn't destroyed (though this should be unlikely) 
+
+    # Only destroy the instance if it didn't start running
+    if not instance_running:  
+        logging.warning(f"Instance {instance_id} did not start running in the expected time frame. Destroying this instance.")
+        if destroy_instance(instance_id, machine_id, api_key):
+            return False  # Indicate that the instance was destroyed
+
+    return instance_running  # Return the status of the instance
 
 def destroy_instance(instance_id, machine_id, api_key):
     global IGNORE_MACHINE_IDS
