@@ -2,7 +2,7 @@ import requests
 import logging
 import time
 
-# Constantsqq
+# Constantswwwww
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 MAX_ORDERS = 2
@@ -11,12 +11,12 @@ SEARCH_CRITERIA = {
     "external": {"eq": False},
     "rentable": {"eq": True},
     "gpu_name": {"eq": "RTX 3060"},
-    "dph_total": {"lte": 0.053},  
+    "dph_total": {"lte": 0.06},  
     "cuda_max_good": {"gte": 12},
     "type": "on-demand",
     "intended_status": "running"
 }
-IGNORE_MACHINE_IDS = []
+IGNORE_MACHINE_IDS = [11750, 13281, 13582]
 
 # Logging Configuration
 logging.basicConfig(level=logging.INFO,
@@ -82,9 +82,8 @@ def monitor_instance_for_running_status(instance_id, api_key, timeout=600, inter
         url = f"https://console.vast.ai/api/v0/instances/{instance_id}?api_key={api_key}"
         headers = {'Accept': 'application/json'}
         response = requests.get(url, headers=headers)
-        
         if response.status_code == 200:
-            status = response.json().get('actual_status')
+            status = response.json().get('actual_status', 'unknown')  # Default to 'unknown' if not present
             if status == "running":
                 logging.info(f"Instance {instance_id} is up and running!")
                 return
@@ -92,10 +91,10 @@ def monitor_instance_for_running_status(instance_id, api_key, timeout=600, inter
                 logging.info(f"Instance {instance_id} status: {status}. Waiting...")
         else:
             logging.error(f"Error fetching status for instance {instance_id}. Status code: {response.status_code}. Response: {response.text}")
-        
         time.sleep(interval)
     
-    logging.warning(f"Instance {instance_id} did not start running within the expected time frame. Consider destroying this instance.")    
+    logging.warning(f"Instance {instance_id} did not start running in the expected time frame. Consider destroying this instance.")
+
 
 # Test API connection first
 test_api_connection()
@@ -107,24 +106,29 @@ successful_orders = 0
 logging.info("Waiting for 10 seconds before the first attempt to check offers...")
 time.sleep(10)
 
-while successful_orders < MAX_ORDERS:
-    offers = search_gpu(successful_orders).get('offers', [])
-    for offer in offers:
-        machine_id = offer.get('machine_id')
-        if machine_id not in IGNORE_MACHINE_IDS:
-            response = place_order(offer["id"])
-            if response.get('success'):
-                instance_id = response.get('new_contract')
-                if instance_id:
-                    logging.info(f"Successfully placed order for machine_id: {machine_id}. Monitoring instance {instance_id} for 'running' status...")
-                    monitor_instance_for_running_status(instance_id, api_key)
-                    successful_orders += 1
-                    if successful_orders >= MAX_ORDERS:
-                        logging.info("Maximum order limit reached. Exiting...")
-                        exit(0)
-                else:
-                    logging.error(f"Order was successful but couldn't retrieve 'new_contract' (instance ID) for machine_id: {machine_id}")
+last_check_time = time.time() - CHECK_INTERVAL  # Initialize to ensure first check happens immediately
 
-    time.sleep(CHECK_INTERVAL)
+while successful_orders < MAX_ORDERS:
+    current_time = time.time()
+    if current_time - last_check_time >= CHECK_INTERVAL:
+        offers = search_gpu(successful_orders).get('offers', [])
+        last_check_time = current_time
+        for offer in offers:
+            machine_id = offer.get('machine_id')
+            if machine_id not in IGNORE_MACHINE_IDS:
+                response = place_order(offer["id"])
+                if response.get('success'):
+                    instance_id = response.get('new_contract')
+                    if instance_id:
+                        logging.info(f"Successfully placed order for machine_id: {machine_id}. Monitoring instance {instance_id} for 'running' status...")
+                        monitor_instance_for_running_status(instance_id, api_key)
+                        successful_orders += 1
+                        if successful_orders >= MAX_ORDERS:
+                            logging.info("Maximum order limit reached. Exiting...")
+                            exit(0)
+                    else:
+                        logging.error(f"Order was successful but couldn't retrieve 'new_contract' (instance ID) for machine_id: {machine_id}")
+
+    time.sleep(5)
 
 logging.info("Script finished execution.")
