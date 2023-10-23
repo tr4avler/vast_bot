@@ -17,7 +17,7 @@ SEARCH_CRITERIA = {
     "intended_status": "running"
 }
 global IGNORE_MACHINE_IDS
-IGNORE_MACHINE_IDS = []
+IGNORE_MACHINE_IDS = [11750, 13281, 13582]
 
 # Logging Configuration
 logging.basicConfig(level=logging.INFO,
@@ -84,7 +84,7 @@ def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeou
         headers = {'Accept': 'application/json'}
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
-            status = response.json().get('actual_status', 'unknown')
+            status = response.json()["instances"].get('actual_status', 'unknown')  # Correctly accessing the nested dictionary
             if status == "running":
                 logging.info(f"Instance {instance_id} is up and running!")
                 return
