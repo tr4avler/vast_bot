@@ -2,17 +2,17 @@ import requests
 import logging
 import time
 
-# Constants
+# Constants11
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
-MAX_ORDERS = 3
+MAX_ORDERS = 2
 SEARCH_CRITERIA = {
     "verified": {},
     "external": {"eq": False},
     "rentable": {"eq": True},
     "gpu_name": {"eq": "RTX 3060"},
-    "dph_total": {"lte": 0.045},  
+    "dph_total": {"lte": 0.053},  
     "cuda_max_good": {"gte": 12},
     "type": "on-demand",
     "intended_status": "running"
@@ -91,6 +91,24 @@ def place_order(offer_id):
     headers = {'Accept': 'application/json'}
     response = requests.put(url, headers=headers, json=payload)
     return response.json()
+    
+# Define the function to monitor the actual_status of a specific instance
+def monitor_instance_for_running_status(instance_id, api_key, timeout=600, interval=60):
+    end_time = time.time() + timeout
+    while time.time() < end_time:
+        url = f"https://console.vast.ai/api/v0/instances/{instance_id}?api_key={api_key}"
+        headers = {'Accept': 'application/json'}
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            status = response.json().get('actual_status')
+            if status == "running":
+                logging.info(f"Instance {instance_id} is up and running!")
+                return
+        else:
+            logging.error(f"Error fetching status for instance {instance_id}. Status code: {response.status_code}. Response: {response.text}")
+        time.sleep(interval)
+    
+    logging.warning(f"Instance {instance_id} did not start running in the expected time frame. Consider destroying this instance.")   
 
 # Test API connection first
 test_api_connection()
@@ -119,7 +137,9 @@ while successful_orders < MAX_ORDERS:
         if machine_id not in IGNORE_MACHINE_IDS:
             response = place_order(offer["id"])
             if response.get('success'):
+                instance_id = response.get('instance', {}).get('id')  # Extracting instance_id from the response data
                 logging.info(f"Successfully placed order for machine_id: {machine_id}")
+                monitor_instance_for_running_status(instance_id, api_key)
                 successful_orders += 1
                 if successful_orders >= MAX_ORDERS:
                     logging.info("Maximum order limit reached. Exiting...")
