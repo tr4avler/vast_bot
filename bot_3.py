@@ -2,7 +2,7 @@ import requests
 import logging
 import time
 
-# Constants111
+# Constants11
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 MAX_ORDERS = 2
@@ -83,18 +83,17 @@ def monitor_instance_for_running_status(instance_id, api_key, timeout=600, inter
         headers = {'Accept': 'application/json'}
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
-            status = response.json().get('cur_state', 'unknown')  # Use 'cur_state' instead of 'actual_status', default to 'unknown' if not present
+            status = response.json().get('actual_status', 'unknown')  # Default back to 'actual_status'
             if status == "running":
                 logging.info(f"Instance {instance_id} is up and running!")
                 return
             else:
-                logging.info(f"Instance {instance_id} status: {status}. Waiting...")
+                logging.info(f"Instance {instance_id} status: {status}. Waiting for next check...")
         else:
             logging.error(f"Error fetching status for instance {instance_id}. Status code: {response.status_code}. Response: {response.text}")
         time.sleep(interval)
     
     logging.warning(f"Instance {instance_id} did not start running in the expected time frame. Consider destroying this instance.")
-
 
 # Test API connection first
 test_api_connection()
