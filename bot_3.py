@@ -11,7 +11,7 @@ SEARCH_CRITERIA = {
     "external": {"eq": False},
     "rentable": {"eq": True},
     "gpu_name": {"eq": "RTX 3060"},
-    "dph_total": {"lte": 0.043},  
+    "dph_total": {"lte": 0.041},  
     "cuda_max_good": {"gte": 12},
     "type": "on-demand",
     "intended_status": "running"
@@ -165,7 +165,6 @@ while successful_orders < MAX_ORDERS:
                         if instance_success:
                             successful_orders += 1
                         else:
-                            successful_orders -= 1
                             logging.info(f"Adjusted placed orders count due to instance destruction. New count: {successful_orders}")
                         
                         if successful_orders >= MAX_ORDERS:
