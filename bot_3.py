@@ -11,13 +11,13 @@ SEARCH_CRITERIA = {
     "external": {"eq": False},
     "rentable": {"eq": True},
     "gpu_name": {"eq": "RTX 3060"},
-    "dph_total": {"lte": 0.052},  
+    "dph_total": {"lte": 0.043},  
     "cuda_max_good": {"gte": 12},
     "type": "on-demand",
     "intended_status": "running"
 }
 global IGNORE_MACHINE_IDS
-IGNORE_MACHINE_IDS = []
+IGNORE_MACHINE_IDS = [11750, 13281, 13582]
 
 # Logging Configuration
 logging.basicConfig(level=logging.INFO,
