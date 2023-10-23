@@ -2,7 +2,7 @@ import requests
 import logging
 import time
 
-# Constants11
+# Constants
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
@@ -136,16 +136,22 @@ while successful_orders < MAX_ORDERS:
         machine_id = offer.get('machine_id')
         if machine_id not in IGNORE_MACHINE_IDS:
             response = place_order(offer["id"])
+            logging.info(f"Order response: {response}")  # Log the full response for debugging
+            
             if response.get('success'):
                 instance_id = response.get('instance', {}).get('id')  # Extracting instance_id from the response data
-                logging.info(f"Successfully placed order for machine_id: {machine_id}")
-                monitor_instance_for_running_status(instance_id, api_key)
-                successful_orders += 1
-                if successful_orders >= MAX_ORDERS:
-                    logging.info("Maximum order limit reached. Exiting...")
-                    exit(0)
+                
+                if instance_id:  
+                    logging.info(f"Successfully placed order for machine_id: {machine_id}")
+                    monitor_instance_for_running_status(instance_id, api_key)
+                    successful_orders += 1
+                    if successful_orders >= MAX_ORDERS:
+                        logging.info("Maximum order limit reached. Exiting...")
+                        exit(0)
+                else:
+                    logging.error(f"Order was successful but couldn't find instance ID in response for machine_id: {machine_id}")
             else:
-                logging.error(f"Failed to place order for machine_id: {machine_id}. Reason: {response.get('msg')}")
+                logging.error(f"Failed to place order for machine_id: {machine_id}.")
 
     # Log balance and successful orders count every 5 minutes
     current_time = time.time()
