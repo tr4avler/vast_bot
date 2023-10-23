@@ -2,7 +2,7 @@ import requests
 import logging
 import time
 
-# Constants
+# Constants11
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
@@ -139,9 +139,9 @@ while successful_orders < MAX_ORDERS:
             logging.info(f"Order response: {response}")  # Log the full response for debugging
             
             if response.get('success'):
-                instance_id = response.get('instance', {}).get('id')  # Extracting instance_id from the response data
+                instance_id = response.get('instance', response.get('new_contract'))  # Try to extract instance_id or fall back to new_contract as a potential ID
                 
-                if instance_id:  
+                if instance_id:
                     logging.info(f"Successfully placed order for machine_id: {machine_id}")
                     monitor_instance_for_running_status(instance_id, api_key)
                     successful_orders += 1
