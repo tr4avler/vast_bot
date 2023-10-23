@@ -2,17 +2,16 @@ import requests
 import logging
 import time
 
-# Constantsfcklast
+# Constantsdsds
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
-BALANCE_LOG_INTERVAL = 300  # 5 minutes
-MAX_ORDERS = 3
+MAX_ORDERS = 2
 SEARCH_CRITERIA = {
     "verified": {},
     "external": {"eq": False},
     "rentable": {"eq": True},
     "gpu_name": {"eq": "RTX 3060"},
-    "dph_total": {"lte": 0.045},  
+    "dph_total": {"lte": 0.053},  
     "cuda_max_good": {"gte": 12},
     "type": "on-demand",
     "intended_status": "running"
@@ -80,16 +79,62 @@ def search_gpu(successful_orders_count):
         logging.error(f"Offers check failed. Status code: {response.status_code}. Response: {response.text}")
         return {}
 
+# New function to check the instance status
+def check_instance_status(instance_id, api_key):
+    url = f"https://console.vast.ai/api/v0/instances/{instance_id}?api_key={api_key}"
+    headers = {'Accept': 'application/json'}
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        return response.json().get('actual_status')
+    else:
+        logging.error(f"Error fetching status for instance {instance_id}. Status code: {response.status_code}. Response: {response.text}")
+        return None
+
+# New function to destroy the instance
+def destroy_instance(instance_id, api_key):
+    url = f"https://console.vast.ai/api/v0/instances/{instance_id}?api_key={api_key}"
+    headers = {'Accept': 'application/json'}
+    response = requests.delete(url, headers=headers)
+    if response.status_code == 200:
+        return response.json().get('success', False)
+    else:
+        logging.error(f"Error destroying instance {instance_id}. Status code: {response.status_code}. Response: {response.text}")
+        return False
+
 def place_order(offer_id):
     url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={api_key}"
     payload = {
         "client_id": "me",
         "image": "nvidia/cuda:12.0.1-devel-ubuntu20.04",
-        "disk": 3
+        "disk": 3,
+        "onstart": "sudo apt update && sudo apt -y install wget && sudo wget https://raw.githubusercontent.com/tr4avler/xgpu/main/vast.sh && sudo chmod +x vast.sh && sudo ./vast.sh"  # Add your onstart command here
     }
     headers = {'Accept': 'application/json'}
     response = requests.put(url, headers=headers, json=payload)
-    return response.json()
+    instance_data = response.json()
+
+    if instance_data.get('success'):
+        instance_id = instance_data.get('id')
+        time.sleep(300)  # Wait for 5 minutes
+        for _ in range(5):
+            if check_instance_status(instance_id, api_key) == 'running':
+                break
+            time.sleep(60)  # Wait for 1 minute
+
+        if check_instance_status(instance_id, api_key) != 'running':
+            # Commenting out the instance destruction for testing purposes
+            """
+            if destroy_instance(instance_id, api_key):
+                logging.info(f"Instance {instance_id} was not running and has been destroyed.")
+                machine_id = instance_data.get('machine_id')
+                if machine_id:
+                    IGNORE_MACHINE_IDS.append(machine_id)
+            else:
+                logging.error(f"Failed to destroy instance {instance_id}.")
+            """
+            logging.warning(f"Instance {instance_id} was not running, but destruction has been skipped for testing purposes.")
+
+    return instance_data
 
 # Test API connection first
 test_api_connection()
@@ -98,19 +143,15 @@ test_api_connection()
 user_details = get_user_details()
 if user_details:
     email = user_details.get('email', 'Unknown')
-    balance = user_details.get('balance', '0.00')
-    logging.info(f"User '{email}' initialized with a balance of ${balance:.2f}")
+    logging.info(f"User '{email}' initialized.")
 else:
     logging.error("Failed to fetch user details. Check API connectivity and credentials.")
-
-# Main Loop
-last_balance_log_time = time.time()
-successful_orders = 0
 
 # Add a 10-second delay before the first attempt
 logging.info("Waiting for 10 seconds before the first attempt to check offers...")
 time.sleep(10)
 
+successful_orders = 0
 while successful_orders < MAX_ORDERS:
     offers = search_gpu(successful_orders).get('offers', [])
     for offer in offers:
@@ -125,14 +166,6 @@ while successful_orders < MAX_ORDERS:
                     exit(0)
             else:
                 logging.error(f"Failed to place order for machine_id: {machine_id}. Reason: {response.get('msg')}")
-
-    # Log balance and successful orders count every 5 minutes
-    current_time = time.time()
-    if current_time - last_balance_log_time >= BALANCE_LOG_INTERVAL:
-        # TODO: Consider fetching the balance again for an updated figure
-        logging.info(f"Current balance: ${balance:.2f}")
-        logging.info(f"Number of successful orders: {successful_orders}")
-        last_balance_log_time = current_time
 
     time.sleep(CHECK_INTERVAL)
 
