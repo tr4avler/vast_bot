@@ -2,7 +2,7 @@ import requests
 import logging
 import time
 
-# Constants11
+# Constants
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 MAX_ORDERS = 2
@@ -11,7 +11,7 @@ SEARCH_CRITERIA = {
     "external": {"eq": False},
     "rentable": {"eq": True},
     "gpu_name": {"eq": "RTX 3060"},
-    "dph_total": {"lte": 0.06},  
+    "dph_total": {"lte": 0.056},  
     "cuda_max_good": {"gte": 12},
     "type": "on-demand",
     "intended_status": "running"
