@@ -2,7 +2,7 @@ import requests
 import logging
 import time
 
-# Constantswwwww
+# Constants111
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 MAX_ORDERS = 2
@@ -83,7 +83,7 @@ def monitor_instance_for_running_status(instance_id, api_key, timeout=600, inter
         headers = {'Accept': 'application/json'}
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
-            status = response.json().get('actual_status', 'unknown')  # Default to 'unknown' if not present
+            status = response.json().get('cur_state', 'unknown')  # Use 'cur_state' instead of 'actual_status', default to 'unknown' if not present
             if status == "running":
                 logging.info(f"Instance {instance_id} is up and running!")
                 return
