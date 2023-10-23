@@ -2,7 +2,7 @@ import requests
 import logging
 import time
 
-# Constants
+# Constantsw
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 MAX_ORDERS = 2
@@ -83,7 +83,7 @@ def monitor_instance_for_running_status(instance_id, api_key, timeout=600, inter
         headers = {'Accept': 'application/json'}
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
-            status = response.json().get('actual_status', 'unknown')  # Default back to 'actual_status'
+            status = response.json()["instances"].get('actual_status', 'unknown')  # Correctly accessing the nested dictionary
             if status == "running":
                 logging.info(f"Instance {instance_id} is up and running!")
                 return
@@ -111,7 +111,9 @@ while successful_orders < MAX_ORDERS:
     current_time = time.time()
     if current_time - last_check_time >= CHECK_INTERVAL:
         offers = search_gpu(successful_orders).get('offers', [])
-        last_check_time = current_time
+        if not offers:
+            logging.info("No matching offers found. Will check again after the interval.")
+        last_check_time = current_time  # Moved this line up so the interval is maintained even if no offers are found.
         for offer in offers:
             machine_id = offer.get('machine_id')
             if machine_id not in IGNORE_MACHINE_IDS:
