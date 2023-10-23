@@ -17,7 +17,7 @@ SEARCH_CRITERIA = {
     "intended_status": "running"
 }
 global IGNORE_MACHINE_IDS
-IGNORE_MACHINE_IDS = [11750, 13281, 13582]
+IGNORE_MACHINE_IDS = []
 
 # Logging Configuration
 logging.basicConfig(level=logging.INFO,
@@ -77,14 +77,14 @@ def place_order(offer_id):
     response = requests.put(url, headers=headers, json=payload)
     return response.json()
     
-def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeout=600, interval=60):
+def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeout=300, interval=60):
     end_time = time.time() + timeout
     while time.time() < end_time:
         url = f"https://console.vast.ai/api/v0/instances/{instance_id}?api_key={api_key}"
         headers = {'Accept': 'application/json'}
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
-            status = response.json()["instances"].get('actual_status', 'unknown')  # Correctly accessing the nested dictionary
+            status = response.json()["instances"].get('actual_status', 'unknown')  # This is correct way to accessing the nested dictionary
             if status == "running":
                 logging.info(f"Instance {instance_id} is up and running!")
                 return
@@ -95,7 +95,9 @@ def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeou
         time.sleep(interval)
     
     logging.warning(f"Instance {instance_id} did not start running in the expected time frame. Destroying this instance.")
-    # destroy_instance(instance_id, machine_id, api_key) 
+    if destroy_instance(instance_id, machine_id, api_key):
+        return False  # Indicate that the instance was destroyed
+    return True  # Indicate that the instance wasn't destroyed (though this should be unlikely) 
 
 def destroy_instance(instance_id, machine_id, api_key):
     global IGNORE_MACHINE_IDS
@@ -106,8 +108,10 @@ def destroy_instance(instance_id, machine_id, api_key):
         logging.info(f"Successfully destroyed instance {instance_id}.")
         IGNORE_MACHINE_IDS.append(machine_id)
         logging.info(f"Added machine_id: {machine_id} to the ignore list.")
+        return True
     else:
         logging.error(f"Failed to destroy instance {instance_id}. Status code: {response.status_code}. Response: {response.text}")
+        return False
 
 # Test API connection first
 test_api_connection()
@@ -123,11 +127,15 @@ last_check_time = time.time() - CHECK_INTERVAL  # Initialize to ensure first che
 
 while successful_orders < MAX_ORDERS:
     current_time = time.time()
+
     if current_time - last_check_time >= CHECK_INTERVAL:
         offers = search_gpu(successful_orders).get('offers', [])
+
         if not offers:
             logging.info("No matching offers found. Will check again after the interval.")
-        last_check_time = current_time  # Moved this line up so the interval is maintained even if no offers are found.
+        
+        last_check_time = current_time  # Reset the last check time
+        
         for offer in offers:
             machine_id = offer.get('machine_id')
             if machine_id not in IGNORE_MACHINE_IDS:
@@ -136,8 +144,13 @@ while successful_orders < MAX_ORDERS:
                     instance_id = response.get('new_contract')
                     if instance_id:
                         logging.info(f"Successfully placed order for machine_id: {machine_id}. Monitoring instance {instance_id} for 'running' status...")
-                        monitor_instance_for_running_status(instance_id, machine_id, api_key)
-                        successful_orders += 1
+                        instance_success = monitor_instance_for_running_status(instance_id, machine_id, api_key)
+                        if instance_success:
+                            successful_orders += 1
+                        else:
+                            successful_orders -= 1
+                            logging.info(f"Adjusted placed orders count due to instance destruction. New count: {successful_orders}")
+                        
                         if successful_orders >= MAX_ORDERS:
                             logging.info("Maximum order limit reached. Exiting...")
                             exit(0)
@@ -145,5 +158,6 @@ while successful_orders < MAX_ORDERS:
                         logging.error(f"Order was successful but couldn't retrieve 'new_contract' (instance ID) for machine_id: {machine_id}")
 
     time.sleep(5)
+
 
 logging.info("Script finished execution.")
