@@ -5,7 +5,7 @@ import time
 # Constants
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
-MAX_ORDERS = 2
+MAX_ORDERS = 3
 SEARCH_CRITERIA = {
     "verified": {},
     "external": {"eq": False},
