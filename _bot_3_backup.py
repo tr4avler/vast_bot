@@ -2,11 +2,11 @@ import requests
 import logging
 import time
 
-# Constants
+# Constantsbcp
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 BALANCE_LOG_INTERVAL = 300  # 5 minutes
-MAX_ORDERS = 4
+MAX_ORDERS = 3
 SEARCH_CRITERIA = {
     "verified": {},
     "external": {"eq": False},
@@ -69,7 +69,8 @@ def search_gpu(successful_orders_count):
     response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
     if response.status_code == 200:
         dph_criteria = SEARCH_CRITERIA.get("cuda_max_good", {}).get("gte")
-        logging.info(f"Offers check went successfully. DPH criteria: {SEARCH_CRITERIA.get('dph_total', {}).get('lte')}. Number of successful orders: {successful_orders_count}")
+        logging.info("==============================")
+        logging.info(f"--->\nOffers check: SUCCESS\nDPH: {SEARCH_CRITERIA.get('dph_total', {}).get('lte')}\nPlaced orders: {successful_orders_count}")
         try:
             return response.json()
         except Exception as e:
