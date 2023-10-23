@@ -106,14 +106,14 @@ def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeou
 
 def destroy_instance(instance_id, machine_id, api_key):
     global IGNORE_MACHINE_IDS
-    url = f"https://console.vast.ai/api/v0/instances/{instance_id}?api_key={api_key}"
+    url = f"https://console.vast.ai/api/v0/instances/{instance_id}/?api_key={api_key}"
     headers = {'Accept': 'application/json'}
-    
+  
     try:
         response = requests.delete(url, headers=headers)
         response.raise_for_status()  # This will raise an HTTPError if the HTTP request returned an unsuccessful status code
 
-        if response.json().get('success'):
+        if response.json().get('success') == True:
             logging.info(f"Successfully destroyed instance {instance_id}.")
             IGNORE_MACHINE_IDS.append(machine_id)
             logging.info(f"Added machine_id: {machine_id} to the ignore list.")
