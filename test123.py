@@ -7,7 +7,7 @@ API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 MAX_ORDERS = 3
 GPU_DPH_RATES = {
-    "RTX 3060": 0.041,
+    "RTX 3060": 0.061,
     "RTX 3090": 0.082,
     "RTX 3090 Ti": 0.082,
     "RTX 4090 Ti": 0.1,
@@ -161,13 +161,8 @@ while successful_orders < MAX_ORDERS:
     current_time = time.time()
 
     if current_time - last_check_time >= CHECK_INTERVAL:
-        offers = search_gpu(successful_orders).get('offers', [])
-
-        if not offers:
-            logging.info("No matching offers for RTX 3060. Will check again after the interval.")
-        
-        last_check_time = current_time  # Reset the last check time
-        
+        offers = search_gpu(successful_orders).get('offers', [])      
+        last_check_time = current_time  # Reset the last check time      
         for offer in offers:
             machine_id = offer.get('machine_id')
             if machine_id not in IGNORE_MACHINE_IDS:
