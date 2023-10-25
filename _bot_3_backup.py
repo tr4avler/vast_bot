@@ -16,8 +16,10 @@ SEARCH_CRITERIA = {
     "type": "on-demand",
     "intended_status": "running"
 }
+destroyed_instances_count = 0
 global IGNORE_MACHINE_IDS
-IGNORE_MACHINE_IDS = [11750, 13281, 13582]
+IGNORE_MACHINE_IDS = []
+
 
 # Logging Configuration
 logging.basicConfig(level=logging.INFO,
@@ -54,8 +56,7 @@ def search_gpu(successful_orders_count):
     headers = {'Accept': 'application/json'}
     response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
     if response.status_code == 200:
-        logging.info("==============================")
-        logging.info(f"--->\nOffers check: SUCCESS\nDPH: {SEARCH_CRITERIA.get('dph_total', {}).get('lte')}\nPlaced orders: {successful_orders_count}")
+        logging.info(f"\nOffers check: SUCCESS\nDPH: {SEARCH_CRITERIA.get('dph_total', {}).get('lte')}\nPlaced orders: {successful_orders_count}/{MAX_ORDERS}\nDestroyed instances: {destroyed_instances_count}")
         try:
             return response.json()
         except Exception as e:
@@ -77,7 +78,7 @@ def place_order(offer_id):
     response = requests.put(url, headers=headers, json=payload)
     return response.json()
     
-def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeout=150, interval=30):
+def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeout=210, interval=30):
     end_time = time.time() + timeout
     instance_running = False  # Add a flag to check if instance is running
     while time.time() < end_time:
@@ -105,7 +106,7 @@ def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeou
     return instance_running  # Return the status of the instance
 
 def destroy_instance(instance_id, machine_id, api_key):
-    global IGNORE_MACHINE_IDS
+    global IGNORE_MACHINE_IDS, destroyed_instances_count
     url = f"https://console.vast.ai/api/v0/instances/{instance_id}/?api_key={api_key}"
     headers = {'Accept': 'application/json'}
   
@@ -117,6 +118,7 @@ def destroy_instance(instance_id, machine_id, api_key):
             logging.info(f"Successfully destroyed instance {instance_id}.")
             IGNORE_MACHINE_IDS.append(machine_id)
             logging.info(f"Added machine_id: {machine_id} to the ignore list.")
+            destroyed_instances_count += 1  # Increment the counter
             return True
         else:
             logging.error(f"Failed to destroy instance {instance_id}. API did not return a success status. Response: {response.text}")
