@@ -24,7 +24,7 @@ IGNORE_MACHINE_IDS = []
 # Logging Configuration
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
-                    handlers=[logging.FileHandler("script_output.log"),
+                    handlers=[logging.FileHandler("script_output3090ti.log"),
                               logging.StreamHandler()])
 
 # Load API Key
