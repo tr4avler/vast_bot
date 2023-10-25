@@ -2,22 +2,22 @@ import requests
 import logging
 import time
 
-# Constantsbcp
+# Constants
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
-BALANCE_LOG_INTERVAL = 300  # 5 minutes
 MAX_ORDERS = 3
 SEARCH_CRITERIA = {
     "verified": {},
     "external": {"eq": False},
     "rentable": {"eq": True},
     "gpu_name": {"eq": "RTX 3060"},
-    "dph_total": {"lte": 0.045},  
+    "dph_total": {"lte": 0.041},  
     "cuda_max_good": {"gte": 12},
     "type": "on-demand",
     "intended_status": "running"
 }
-IGNORE_MACHINE_IDS = []
+global IGNORE_MACHINE_IDS
+IGNORE_MACHINE_IDS = [11750, 13281, 13582]
 
 # Logging Configuration
 logging.basicConfig(level=logging.INFO,
@@ -49,26 +49,11 @@ def test_api_connection():
     except Exception as e:
         logging.error(f"Error connecting to API: {e}")
 
-def get_user_details():
-    url = f"https://console.vast.ai/api/v0/users/current?api_key={api_key}"
-    headers = {'Accept': 'application/json'}
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        try:
-            return response.json()
-        except Exception as e:
-            logging.error(f"Failed to parse JSON from user details API response: {e}. Response text: {response.text}")
-            return {}
-    else:
-        logging.error(f"User details API returned an error. Status code: {response.status_code}. Response: {response.text}")
-        return {}
-
 def search_gpu(successful_orders_count):
     url = "https://console.vast.ai/api/v0/bundles/"
     headers = {'Accept': 'application/json'}
     response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
     if response.status_code == 200:
-        dph_criteria = SEARCH_CRITERIA.get("cuda_max_good", {}).get("gte")
         logging.info("==============================")
         logging.info(f"--->\nOffers check: SUCCESS\nDPH: {SEARCH_CRITERIA.get('dph_total', {}).get('lte')}\nPlaced orders: {successful_orders_count}")
         try:
@@ -85,55 +70,110 @@ def place_order(offer_id):
     payload = {
         "client_id": "me",
         "image": "nvidia/cuda:12.0.1-devel-ubuntu20.04",
-        "disk": 3
+        "disk": 3,
+        "onstart": "sudo apt update && sudo apt -y install wget && sudo wget https://raw.githubusercontent.com/tr4avler/xgpu/main/vast.sh && sudo chmod +x vast.sh && sudo ./vast.sh"
     }
     headers = {'Accept': 'application/json'}
     response = requests.put(url, headers=headers, json=payload)
     return response.json()
+    
+def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeout=150, interval=30):
+    end_time = time.time() + timeout
+    instance_running = False  # Add a flag to check if instance is running
+    while time.time() < end_time:
+        url = f"https://console.vast.ai/api/v0/instances/{instance_id}?api_key={api_key}"
+        headers = {'Accept': 'application/json'}
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            status = response.json()["instances"].get('actual_status', 'unknown')
+            if status == "running":
+                logging.info(f"Instance {instance_id} is up and running!")
+                instance_running = True  # Set the flag to True when instance is running
+                break
+            else:
+                logging.info(f"Instance {instance_id} status: {status}. Waiting for next check...")
+        else:
+            logging.error(f"Error fetching status for instance {instance_id}. Status code: {response.status_code}. Response: {response.text}")
+        time.sleep(interval)
+
+    # Only destroy the instance if it didn't start running
+    if not instance_running:  
+        logging.warning(f"Instance {instance_id} did not start running in the expected time frame. Destroying this instance.")
+        if destroy_instance(instance_id, machine_id, api_key):
+            return False  # Indicate that the instance was destroyed
+
+    return instance_running  # Return the status of the instance
+
+def destroy_instance(instance_id, machine_id, api_key):
+    global IGNORE_MACHINE_IDS
+    url = f"https://console.vast.ai/api/v0/instances/{instance_id}/?api_key={api_key}"
+    headers = {'Accept': 'application/json'}
+  
+    try:
+        response = requests.delete(url, headers=headers)
+        response.raise_for_status()  # This will raise an HTTPError if the HTTP request returned an unsuccessful status code
+
+        if response.json().get('success') == True:
+            logging.info(f"Successfully destroyed instance {instance_id}.")
+            IGNORE_MACHINE_IDS.append(machine_id)
+            logging.info(f"Added machine_id: {machine_id} to the ignore list.")
+            return True
+        else:
+            logging.error(f"Failed to destroy instance {instance_id}. API did not return a success status. Response: {response.text}")
+            return False
+
+    except requests.HTTPError as e:
+        logging.error(f"HTTP error occurred while trying to destroy instance {instance_id}: {e}")
+        return False
+    except Exception as e:
+        logging.error(f"An unexpected error occurred while trying to destroy instance {instance_id}: {e}")
+        return False
+
 
 # Test API connection first
 test_api_connection()
 
-# Fetch and log user details
-user_details = get_user_details()
-if user_details:
-    email = user_details.get('email', 'Unknown')
-    balance = user_details.get('balance', '0.00')
-    logging.info(f"User '{email}' initialized with a balance of ${balance:.2f}")
-else:
-    logging.error("Failed to fetch user details. Check API connectivity and credentials.")
-
 # Main Loop
-last_balance_log_time = time.time()
 successful_orders = 0
 
 # Add a 10-second delay before the first attempt
 logging.info("Waiting for 10 seconds before the first attempt to check offers...")
 time.sleep(10)
 
+last_check_time = time.time() - CHECK_INTERVAL  # Initialize to ensure first check happens immediately
+
 while successful_orders < MAX_ORDERS:
-    offers = search_gpu(successful_orders).get('offers', [])
-    for offer in offers:
-        machine_id = offer.get('machine_id')
-        if machine_id not in IGNORE_MACHINE_IDS:
-            response = place_order(offer["id"])
-            if response.get('success'):
-                logging.info(f"Successfully placed order for machine_id: {machine_id}")
-                successful_orders += 1
-                if successful_orders >= MAX_ORDERS:
-                    logging.info("Maximum order limit reached. Exiting...")
-                    exit(0)
-            else:
-                logging.error(f"Failed to place order for machine_id: {machine_id}. Reason: {response.get('msg')}")
-
-    # Log balance and successful orders count every 5 minutes
     current_time = time.time()
-    if current_time - last_balance_log_time >= BALANCE_LOG_INTERVAL:
-        # TODO: Consider fetching the balance again for an updated figure
-        logging.info(f"Current balance: ${balance:.2f}")
-        logging.info(f"Number of successful orders: {successful_orders}")
-        last_balance_log_time = current_time
 
-    time.sleep(CHECK_INTERVAL)
+    if current_time - last_check_time >= CHECK_INTERVAL:
+        offers = search_gpu(successful_orders).get('offers', [])
+
+        if not offers:
+            logging.info("No matching offers found. Will check again after the interval.")
+        
+        last_check_time = current_time  # Reset the last check time
+        
+        for offer in offers:
+            machine_id = offer.get('machine_id')
+            if machine_id not in IGNORE_MACHINE_IDS:
+                response = place_order(offer["id"])
+                if response.get('success'):
+                    instance_id = response.get('new_contract')
+                    if instance_id:
+                        logging.info(f"Successfully placed order for machine_id: {machine_id}. Monitoring instance {instance_id} for 'running' status...")
+                        instance_success = monitor_instance_for_running_status(instance_id, machine_id, api_key)
+                        if instance_success:
+                            successful_orders += 1
+                        else:
+                            logging.info(f"Adjusted placed orders count due to instance destruction. New count: {successful_orders}")
+                        
+                        if successful_orders >= MAX_ORDERS:
+                            logging.info("Maximum order limit reached. Exiting...")
+                            exit(0)
+                    else:
+                        logging.error(f"Order was successful but couldn't retrieve 'new_contract' (instance ID) for machine_id: {machine_id}")
+
+    time.sleep(5)
+
 
 logging.info("Script finished execution.")
