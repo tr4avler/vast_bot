@@ -151,7 +151,7 @@ while successful_orders < MAX_ORDERS:
         offers = search_gpu(successful_orders).get('offers', [])
 
         if not offers:
-            logging.info("No matching offers found. Will check again after the interval.")
+            logging.info("No matching offers for RTX 3060. Will check again after the interval.")
         
         last_check_time = current_time  # Reset the last check time
         
