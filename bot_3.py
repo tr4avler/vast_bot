@@ -86,10 +86,10 @@ def test_api_connection():
 
 def search_gpu(successful_orders_count, gpu_criteria):
     url = "https://console.vast.ai/api/v0/bundles/"
-    offers = search_gpu(successful_orders, gpu_criteria).get('offers', [])
-    response = requests.post(url, headers=headers, json=merged_criteria)
+    headers = {'Accept': 'application/json', 'Authorization': f'Bearer {api_key}'}
+    response = requests.post(url, headers=headers, json=gpu_criteria)
     if response.status_code == 200:
-        logging.info(f"\nOffers check: SUCCESS\nDPH: {GPU_SEARCH_CRITERIA.get('dph_total', {}).get('lte')}\nPlaced orders: {successful_orders_count}/{MAX_ORDERS}\nDestroyed instances: {destroyed_instances_count}")
+        logging.info(f"\nOffers check: SUCCESS\nDPH: {gpu_criteria.get('dph_total', {}).get('lte')}\nPlaced orders: {successful_orders_count}/{MAX_ORDERS}\nDestroyed instances: {destroyed_instances_count}")
         try:
             return response.json()
         except Exception as e:
@@ -98,6 +98,7 @@ def search_gpu(successful_orders_count, gpu_criteria):
     else:
         logging.error(f"Offers check failed. Status code: {response.status_code}. Response: {response.text}")
         return {}
+
 
 def place_order(offer_id):
     url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={api_key}"
