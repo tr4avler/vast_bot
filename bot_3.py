@@ -61,7 +61,7 @@ def search_gpu(successful_orders_count, current_gpu_search_option):
     headers = {'Accept': 'application/json'}
     response = requests.post(url, headers=headers, json=current_criteria)
     if response.status_code == 200:
-        logging.info(f"---> Offers check: SUCCESS\nDPH: {current_gpu_search_option.get('dph_total', 0)}\nPlaced orders: {successful_orders_count}/{MAX_ORDERS}\nDestroyed instances: {destroyed_instances_count}\n======================")
+        logging.info(f"---> Offers check: SUCCESS\nDPH: {current_criteria.get('dph_total')}\nPlaced orders: {successful_orders_count}/{MAX_ORDERS}\nDestroyed instances: {destroyed_instances_count}\n======================")
         logging.info(f"---> Checking {current_gpu_search_option['gpu_name']} offers")
         try:
             return response.json()
