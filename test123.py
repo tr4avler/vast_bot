@@ -5,13 +5,13 @@ import time
 # Constants
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
-MAX_ORDERS = 2
+MAX_ORDERS = 5
 GPU_DPH_RATES = {
     "RTX 3060": 0.041,
-    "RTX 3090": 0.151,
-    "RTX 3090 Ti": 0.082,
-    "RTX 4090 Ti": 0.1,
-    "RTX 2080": 0.041,
+    "RTX 3090": 0.82,
+    "RTX 3090 Ti": 0.084,
+    "RTX 4090": 0.1,
+    "RTX 2080 Ti": 0.041,
 }
 SEARCH_CRITERIA = {
     "verified": {},
@@ -93,7 +93,7 @@ def place_order(offer_id):
     response = requests.put(url, headers=headers, json=payload)
     return response.json()
     
-def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeout=210, interval=30):
+def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeout=300, interval=30):
     end_time = time.time() + timeout
     instance_running = False  # Add a flag to check if instance is running
     while time.time() < end_time:
