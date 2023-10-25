@@ -6,49 +6,16 @@ import time
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 MAX_ORDERS = 3
-GPU_SEARCH_CRITERIA = [
-    {
-        "verified": {},
-        "external": {"eq": False},
-        "rentable": {"eq": True},
-        "gpu_name": {"eq": "RTX 3060"},
-        "dph_total": {"lte": 0.041},  
-        "cuda_max_good": {"gte": 12},
-        "type": "on-demand",
-        "intended_status": "running"
-    },
-    {
-        "verified": {},
-        "external": {"eq": False},
-        "rentable": {"eq": True},
-        "gpu_name": {"eq": "RTX 3090"},
-        "dph_total": {"lte": 0.082},  
-        "cuda_max_good": {"gte": 12},
-        "type": "on-demand",
-        "intended_status": "running"
-    },
-    {
-        "verified": {},
-        "external": {"eq": False},
-        "rentable": {"eq": True},
-        "gpu_name": {"eq": "RTX 3090 Ti"},
-        "dph_total": {"lte": 0.082},  
-        "cuda_max_good": {"gte": 12},
-        "type": "on-demand",
-        "intended_status": "running"
-    },
-    {
-        "verified": {},
-        "external": {"eq": False},
-        "rentable": {"eq": True},
-        "gpu_name": {"eq": "RTX 4080"},
-        "dph_total": {"lte": 0.1},  
-        "cuda_max_good": {"gte": 12},
-        "type": "on-demand",
-        "intended_status": "running"
-    },
-]
-
+SEARCH_CRITERIA = {
+    "verified": {},
+    "external": {"eq": False},
+    "rentable": {"eq": True},
+    "gpu_name": {"eq": "RTX 3060"},
+    "dph_total": {"lte": 0.041},  
+    "cuda_max_good": {"gte": 12},
+    "type": "on-demand",
+    "intended_status": "running"
+}
 destroyed_instances_count = 0
 global IGNORE_MACHINE_IDS
 IGNORE_MACHINE_IDS = []
@@ -84,12 +51,12 @@ def test_api_connection():
     except Exception as e:
         logging.error(f"Error connecting to API: {e}")
 
-def search_gpu(successful_orders_count, gpu_criteria):
+def search_gpu(successful_orders_count):
     url = "https://console.vast.ai/api/v0/bundles/"
-    headers = {'Accept': 'application/json', 'Authorization': f'Bearer {api_key}'}
-    response = requests.post(url, headers=headers, json=gpu_criteria)
+    headers = {'Accept': 'application/json'}
+    response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
     if response.status_code == 200:
-        logging.info(f"\nOffers check: SUCCESS\nDPH: {gpu_criteria.get('dph_total', {}).get('lte')}\nPlaced orders: {successful_orders_count}/{MAX_ORDERS}\nDestroyed instances: {destroyed_instances_count}")
+        logging.info(f"\nOffers check: SUCCESS\nDPH: {SEARCH_CRITERIA.get('dph_total', {}).get('lte')}\nPlaced orders: {successful_orders_count}/{MAX_ORDERS}\nDestroyed instances: {destroyed_instances_count}")
         try:
             return response.json()
         except Exception as e:
@@ -98,7 +65,6 @@ def search_gpu(successful_orders_count, gpu_criteria):
     else:
         logging.error(f"Offers check failed. Status code: {response.status_code}. Response: {response.text}")
         return {}
-
 
 def place_order(offer_id):
     url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={api_key}"
@@ -182,12 +148,10 @@ while successful_orders < MAX_ORDERS:
     current_time = time.time()
 
     if current_time - last_check_time >= CHECK_INTERVAL:
-        for gpu_criteria in GPU_SEARCH_CRITERIA:
-            offers = search_gpu(successful_orders, gpu_criteria).get('offers', [])
+        offers = search_gpu(successful_orders).get('offers', [])
 
-            if not offers:
-                logging.info(f"No matching offers found for {gpu_criteria['gpu_name']['eq']}. Will check again after the interval.")
-                continue
+        if not offers:
+            logging.info("No matching offers found. Will check again after the interval.")
         
         last_check_time = current_time  # Reset the last check time
         
