@@ -86,10 +86,10 @@ def test_api_connection():
 
 def search_gpu(successful_orders_count, gpu_criteria):
     url = "https://console.vast.ai/api/v0/bundles/"
-    merged_criteria = {**SEARCH_CRITERIA, **gpu_criteria}
+    merged_criteria = {**GPU_SEARCH_CRITERIA, **gpu_criteria}
     response = requests.post(url, headers=headers, json=merged_criteria)
     if response.status_code == 200:
-        logging.info(f"\nOffers check: SUCCESS\nDPH: {SEARCH_CRITERIA.get('dph_total', {}).get('lte')}\nPlaced orders: {successful_orders_count}/{MAX_ORDERS}\nDestroyed instances: {destroyed_instances_count}")
+        logging.info(f"\nOffers check: SUCCESS\nDPH: {GPU_SEARCH_CRITERIA.get('dph_total', {}).get('lte')}\nPlaced orders: {successful_orders_count}/{MAX_ORDERS}\nDestroyed instances: {destroyed_instances_count}")
         try:
             return response.json()
         except Exception as e:
