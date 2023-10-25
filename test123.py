@@ -6,6 +6,13 @@ import time
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
 MAX_ORDERS = 3
+GPU_DPH_RATES = {
+    "RTX 3060": 0.041,
+    "RTX 3090": 0.082,
+    "RTX 3090 Ti": 0.082,
+    "RTX 4090 Ti": 0.1,
+    "RTX 2080": 0.041,
+}
 SEARCH_CRITERIA = {
     "verified": {},
     "external": {"eq": False},
@@ -15,17 +22,9 @@ SEARCH_CRITERIA = {
     "type": "on-demand",
     "intended_status": "running"
 }
-GPU_DPH_RATES = {
-    "RTX 3060": 0.041,
-    "RTX 3090": 0.082,
-    "RTX 3090 Ti": 0.082,
-    "RTX 4090 Ti": 0.1,
-    "RTX 2080": 0.041,
-}
 destroyed_instances_count = 0
 global IGNORE_MACHINE_IDS
 IGNORE_MACHINE_IDS = []
-
 
 # Logging Configuration
 logging.basicConfig(level=logging.INFO,
