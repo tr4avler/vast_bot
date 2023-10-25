@@ -5,10 +5,10 @@ import time
 # Constants
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
-MAX_ORDERS = 3
+MAX_ORDERS = 2
 GPU_DPH_RATES = {
-    "RTX 3060": 0.061,
-    "RTX 3090": 0.082,
+    "RTX 3060": 0.041,
+    "RTX 3090": 0.151,
     "RTX 3090 Ti": 0.082,
     "RTX 4090 Ti": 0.1,
     "RTX 2080": 0.041,
@@ -67,7 +67,9 @@ def search_gpu(successful_orders_count):
             # Filter offers based on DPH rates
             filtered_offers = [offer for offer in offers if offer.get('gpu_name') in GPU_DPH_RATES and offer.get('dph_total') <= GPU_DPH_RATES[offer.get('gpu_name')]]
             if filtered_offers:
-                logging.info("Found matching offers.")
+                for offer in filtered_offers:
+                    gpu_model = offer.get('gpu_name')
+                    logging.info(f"Found matching offer for {gpu_model}.")
             else:
                 logging.info("No matching offers found based on DPH rates.")
             return {"offers": filtered_offers}
@@ -165,12 +167,13 @@ while successful_orders < MAX_ORDERS:
         last_check_time = current_time  # Reset the last check time      
         for offer in offers:
             machine_id = offer.get('machine_id')
+            gpu_model = offer.get('gpu_name')
             if machine_id not in IGNORE_MACHINE_IDS:
                 response = place_order(offer["id"])
                 if response.get('success'):
                     instance_id = response.get('new_contract')
                     if instance_id:
-                        logging.info(f"Successfully placed order for machine_id: {machine_id}. Monitoring instance {instance_id} for 'running' status...")
+                        logging.info(f"Successfully placed order for {gpu_model} with machine_id: {machine_id}. Monitoring instance {instance_id} for 'running' status...")
                         instance_success = monitor_instance_for_running_status(instance_id, machine_id, api_key)
                         if instance_success:
                             successful_orders += 1
