@@ -5,13 +5,13 @@ import time
 # Constants
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 120  # 2 minutes
-MAX_ORDERS = 5
+MAX_ORDERS = 6
 GPU_DPH_RATES = {
-    "RTX 3060": 0.041,
-    "RTX 3090": 0.82,
-    "RTX 3090 Ti": 0.084,
+    "RTX 3060": 0.042,
+    "RTX 3090": 0.83,
+    "RTX 3090 Ti": 0.085,
     "RTX 4090": 0.1,
-    "RTX 2080 Ti": 0.041,
+    "RTX 2080 Ti": 0.043,
 }
 SEARCH_CRITERIA = {
     "verified": {},
@@ -61,7 +61,7 @@ def search_gpu(successful_orders_count):
     headers = {'Accept': 'application/json'}
     response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
     if response.status_code == 200:
-        logging.info(f"\nOffers check: SUCCESS\nPlaced orders: {successful_orders_count}/{MAX_ORDERS}\nDestroyed instances: {destroyed_instances_count}")
+        logging.info(f"\nOffers check: SUCCESS\nPlaced orders: {successful_orders_count}/{MAX_ORDERS}\nDestroyed instances: {destroyed_instances_count}\nIgnored machine IDs: {IGNORE_MACHINE_IDS}")
         try:
             offers = response.json().get('offers', [])
             # Filter offers based on DPH rates
