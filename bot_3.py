@@ -19,7 +19,7 @@ GPU_DPH_RATES = {
     "RTX A6000": 0.091,
     "RTX A10": 0.062,
     "RTX A40": 0.083,    
-    "RTX 2080 Ti": 0.045,
+    "RTX 2080 Ti": 0.042,
 }
 SEARCH_CRITERIA = {
     "verified": {},
@@ -97,7 +97,7 @@ def place_order(offer_id):
         "client_id": "me",
         "image": "nvidia/cuda:12.0.1-devel-ubuntu20.04",
         "disk": 3,
-        "onstart": "sudo apt update && sudo apt -y install wget && sudo wget https://raw.githubusercontent.com/tr4avler/xgpu/main/vast.sh && sudo chmod +x vast.sh && sudo ./vast.sh"
+        "onstart": "sudo apt update && sudo apt -y install wget && sudo wget https://raw.githubusercontent.com/tr4avler/xgpu/main/vast.sh && sudo chmod +x vast.sh && sudo ./vast.sh && tail -f /root/XENGPUMiner/miner.log"
     }
     headers = {'Accept': 'application/json'}
     response = requests.put(url, headers=headers, json=payload)
