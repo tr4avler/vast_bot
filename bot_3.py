@@ -8,10 +8,18 @@ CHECK_INTERVAL = 60  # 1 minutes
 MAX_ORDERS = 6
 GPU_DPH_RATES = {
     "RTX 3060": 0.042,
+    "RTX 3070": 0.036, 
+    "RTX 3080 Ti": 0.058,    
     "RTX 3090": 0.083,
     "RTX 3090 Ti": 0.085,
+    "RTX 4070": 0.057,    
+    "RTX 4080": 0.083,
     "RTX 4090": 0.1,
-    "RTX 2080 Ti": 0.043,
+    "RTX A5000": 0.078,
+    "RTX A6000": 0.091,
+    "RTX A10": 0.062,
+    "RTX A40": 0.083,    
+    "RTX 2080 Ti": 0.045,
 }
 SEARCH_CRITERIA = {
     "verified": {},
