@@ -8,7 +8,7 @@ CHECK_INTERVAL = 120  # 2 minutes
 MAX_ORDERS = 6
 GPU_DPH_RATES = {
     "RTX 3060": 0.042,
-    "RTX 3090": 0.83,
+    "RTX 3090": 0.083,
     "RTX 3090 Ti": 0.085,
     "RTX 4090": 0.1,
     "RTX 2080 Ti": 0.043,
