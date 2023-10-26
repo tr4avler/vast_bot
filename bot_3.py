@@ -4,7 +4,7 @@ import time
 
 # Constants
 API_KEY_FILE = 'api_key.txt'
-CHECK_INTERVAL = 120  # 2 minutes
+CHECK_INTERVAL = 60  # 1 minutes
 MAX_ORDERS = 6
 GPU_DPH_RATES = {
     "RTX 3060": 0.042,
