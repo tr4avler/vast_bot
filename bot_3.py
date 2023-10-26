@@ -62,6 +62,9 @@ def search_gpu(successful_orders_count):
     response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
     if response.status_code == 200:
         logging.info(f"\nOffers check: SUCCESS\nPlaced orders: {successful_orders_count}/{MAX_ORDERS}\nDestroyed instances: {destroyed_instances_count}\nIgnored machine IDs: {IGNORE_MACHINE_IDS}")
+        logging.info("GPU DPH Rates:")
+        for gpu_model, dph_rate in GPU_DPH_RATES.items():
+            logging.info(f"{gpu_model}: {dph_rate}/hour")
         try:
             offers = response.json().get('offers', [])
             # Filter offers based on DPH rates
@@ -79,7 +82,6 @@ def search_gpu(successful_orders_count):
     else:
         logging.error(f"Offers check failed. Status code: {response.status_code}. Response: {response.text}")
         return {}
-
 
 def place_order(offer_id):
     url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={api_key}"
