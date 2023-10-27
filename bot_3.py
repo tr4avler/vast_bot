@@ -34,6 +34,7 @@ SEARCH_CRITERIA = {
 destroyed_instances_count = 0
 global IGNORE_MACHINE_IDS
 IGNORE_MACHINE_IDS = []
+successful_orders = 0
 
 # Logging Configuration
 logging.basicConfig(level=logging.INFO,
@@ -65,12 +66,12 @@ def test_api_connection():
     except Exception as e:
         logging.error(f"Error connecting to API: {e}")
 
-def search_gpu(successful_orders_count):
+def search_gpu(successful_orders):
     url = "https://console.vast.ai/api/v0/bundles/"
     headers = {'Accept': 'application/json'}
     response = requests.post(url, headers=headers, json=SEARCH_CRITERIA)
     if response.status_code == 200:
-        logging.info(f"\nOffers check: SUCCESS\nPlaced orders: {successful_orders_count}/{MAX_ORDERS}\nDestroyed instances: {destroyed_instances_count}\nIgnored machine IDs: {IGNORE_MACHINE_IDS}")
+        logging.info(f"\nOffers check: SUCCESS\nPlaced orders: {successful_orders}/{MAX_ORDERS}\nDestroyed instances: {destroyed_instances_count}\nIgnored machine IDs: {IGNORE_MACHINE_IDS}")
         logging.info("GPU DPH Rates:")
         for gpu_model, dph_rate in GPU_DPH_RATES.items():
             logging.info(f"{gpu_model}: {dph_rate}/hour")
@@ -157,19 +158,21 @@ def destroy_instance(instance_id, machine_id, api_key):
         logging.error(f"An unexpected error occurred while trying to destroy instance {instance_id}: {e}")
         return False
 
-def handle_instance(instance_id, machine_id, api_key):
+def handle_instance(instance_id, machine_id, api_key, lock):
     global successful_orders
     instance_success = monitor_instance_for_running_status(instance_id, machine_id, api_key)
     if instance_success:
-        successful_orders += 1
-        if successful_orders >= MAX_ORDERS:
+        with lock:  # This acquires the lock and releases it when the block is exited
+            successful_orders += 1
+            logging.info(f"Successful orders count: {successful_orders}")
+            if successful_orders >= MAX_ORDERS:
             logging.info("Maximum order limit reached. Exiting...")
 
 # Test API connection first
 test_api_connection()
 
 # Main Loop
-successful_orders = 0
+successful_orders_lock = threading.Lock()
 
 # Add a 10-second delay before the first attempt
 logging.info("Waiting for 10 seconds before the first attempt to check offers...")
@@ -181,7 +184,6 @@ threads = []
 
 while successful_orders < MAX_ORDERS:
     current_time = time.time()
-
     if current_time - last_check_time >= CHECK_INTERVAL:
         offers = search_gpu(successful_orders).get('offers', [])      
         last_check_time = current_time  # Reset the last check time
@@ -194,12 +196,15 @@ while successful_orders < MAX_ORDERS:
                     instance_id = response.get('new_contract')
                     if instance_id:
                         logging.info(f"Successfully placed order for {gpu_model} with machine_id: {machine_id}. Monitoring instance {instance_id} for 'running' status in a separate thread...")
-                        thread = threading.Thread(target=handle_instance, args=(instance_id, machine_id, api_key, successful_orders))
+                        thread = threading.Thread(target=handle_instance, args=(instance_id, machine_id, api_key, successful_orders_lock))
                         thread.start()  # Start the thread
                         threads.append(thread)
                     else:
                         logging.error(f"Order was successful but couldn't retrieve 'new_contract' (instance ID) for machine_id: {machine_id}")
-
+                else:
+                    logging.error(f"Failed to place order for offer ID {offer['id']} for machine_id: {machine_id}.")
+            else:
+                logging.info(f"Skipping machine ID {machine_id} as it is in the ignore list.")                        
     time.sleep(5)
 
 for thread in threads:
