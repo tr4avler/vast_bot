@@ -6,7 +6,7 @@ import threading
 # Constants
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 20  # in seconds
-MAX_ORDERS = 6
+MAX_ORDERS = 8
 GPU_DPH_RATES = {
     "RTX 3060": 0.042,
     "RTX 3070": 0.036,
