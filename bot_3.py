@@ -8,7 +8,7 @@ API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 30  # 30 seconds
 MAX_ORDERS = 6
 GPU_DPH_RATES = {
-    "RTX 3060": 0.042,
+    "RTX 3060": 0.061,
     "RTX 3070": 0.036, 
     "RTX 3080 Ti": 0.058,    
     "RTX 3090": 0.083,
