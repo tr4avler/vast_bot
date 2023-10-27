@@ -6,25 +6,25 @@ import threading
 # Constants
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 20  # in seconds
-MAX_ORDERS = 8
+MAX_ORDERS = 6
 GPU_DPH_RATES = {
     "RTX 3060": 0.042,
-    "RTX 3070": 0.036,
-    "RTX 3080 Ti": 0.058,
+    "RTX 3070": 0.034,
+    "RTX 3080 Ti": 0.056,
     "RTX 3090": 0.083,
-    "RTX 3090 Ti": 0.085,
-    "RTX 4070": 0.057,
-    "RTX 4080": 0.083,
-    "RTX 4090": 0.1,
-    "RTX A2000": 0.025,
-    "RTX A4000": 0.045,
-    "RTX A5000": 0.078,
-    "RTX A6000": 0.091,
-    "RTX A10": 0.062,
-    "RTX A40": 0.083,
+    "RTX 3090 Ti": 0.095,
+    "RTX 4070": 0.055,
+    "RTX 4080": 0.08,
+    "RTX 4090": 0.115,
+    "RTX A2000": 0.03,
+    "RTX A4000": 0.048,
+    "RTX A5000": 0.074,
+    "RTX A6000": 0.089,
+    "RTX A10": 0.059,
+    "RTX A40": 0.08,
     "GTX 1080 Ti": 0.025,
-    "RTX 2080 Ti": 0.042,
-    "RTX 2060": 0.038,   
+    "RTX 2080 Ti": 0.044,
+    "RTX 2060": 0.037,   
     "Q RTX 4000": 0.035,
     "Q RTX 8000": 0.1,
 }
