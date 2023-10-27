@@ -99,7 +99,7 @@ def place_order(offer_id):
         "client_id": "me",
         "image": "nvidia/cuda:12.0.1-devel-ubuntu20.04",
         "disk": 4,
-        "onstart": "sudo apt update && sudo apt -y install wget && sudo wget https://raw.githubusercontent.com/tr4avler/xgpu/main/vast.sh && sudo chmod +x vast.sh && sudo ./vast.sh && tail -f /root/XENGPUMiner/miner.log"
+        "onstart": "sudo apt update && sudo apt -y install wget && sudo wget https://raw.githubusercontent.com/tr4avler/xgpu/main/vast.sh && sudo chmod +x vast.sh && sudo ./vast.sh && sudo tail -f /root/XENGPUMiner/miner.log"
     }
     headers = {'Accept': 'application/json'}
     response = requests.put(url, headers=headers, json=payload)
@@ -108,29 +108,38 @@ def place_order(offer_id):
 def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeout=300, interval=30):
     end_time = time.time() + timeout
     instance_running = False  # Add a flag to check if instance is running
+    gpu_utilization_met = False  # Flag to check if GPU utilization is 90% or more
+
     while time.time() < end_time:
         url = f"https://console.vast.ai/api/v0/instances/{instance_id}?api_key={api_key}"
         headers = {'Accept': 'application/json'}
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
-            status = response.json()["instances"].get('actual_status', 'unknown')
+            instance_data = response.json()["instances"]
+            status = instance_data.get('actual_status', 'unknown')
+            gpu_utilization = instance_data.get('gpu_util', 'unknown')  # Get GPU utilization, default to unknown if not present
+            
             if status == "running":
-                logging.info(f"Instance {instance_id} is up and running!")
-                instance_running = True  # Set the flag to True when instance is running
-                break
+                if gpu_utilization >= 90:
+                    logging.info(f"Instance {instance_id} is up and running with GPU utilization at {gpu_utilization}%!")
+                    instance_running = True  # Set the flag to True when instance is running
+                    gpu_utilization_met = True
+                    break
+                else:
+                    logging.info(f"Instance {instance_id} is up and running but GPU utilization is {gpu_utilization}%. Waiting for next check...")
             else:
                 logging.info(f"Instance {instance_id} status: {status}. Waiting for next check...")
         else:
             logging.error(f"Error fetching status for instance {instance_id}. Status code: {response.status_code}. Response: {response.text}")
         time.sleep(interval)
 
-    # Only destroy the instance if it didn't start running
-    if not instance_running:  
-        logging.warning(f"Instance {instance_id} did not start running in the expected time frame. Destroying this instance.")
+    # Only destroy the instance if it didn't start running or GPU utilization is less than 90%
+    if not instance_running or not gpu_utilization_met:  
+        logging.warning(f"Instance {instance_id} did not meet the required conditions. Destroying this instance.")
         if destroy_instance(instance_id, machine_id, api_key):
             return False  # Indicate that the instance was destroyed
 
-    return instance_running  # Return the status of the instance
+    return instance_running and gpu_utilization_met  # Return the status of the instance
 
 def destroy_instance(instance_id, machine_id, api_key):
     global IGNORE_MACHINE_IDS, destroyed_instances_count
