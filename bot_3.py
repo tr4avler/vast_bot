@@ -16,11 +16,17 @@ GPU_DPH_RATES = {
     "RTX 4070": 0.057,
     "RTX 4080": 0.083,
     "RTX 4090": 0.1,
+    "RTX A2000": 0.025,
+    "RTX A4000": 0.045,
     "RTX A5000": 0.078,
     "RTX A6000": 0.091,
     "RTX A10": 0.062,
     "RTX A40": 0.083,
+    "GTX 1080 Ti": 0.025,
     "RTX 2080 Ti": 0.042,
+    "RTX 2060": 0.038,   
+    "Q RTX 4000": 0.035,
+    "Q RTX 8000": 0.1,
 }
 SEARCH_CRITERIA = {
     "verified": {},
@@ -28,6 +34,7 @@ SEARCH_CRITERIA = {
     "rentable": {"eq": True},
     "gpu_name": {"in": list(GPU_DPH_RATES.keys())}, 
     "cuda_max_good": {"gte": 12},
+    "gpu_ram": {"gte": 7},
     "type": "on-demand",
     "intended_status": "running"
 }
