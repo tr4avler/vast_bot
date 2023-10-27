@@ -9,7 +9,7 @@ CHECK_INTERVAL = 20  # in seconds
 MAX_ORDERS = 6
 GPU_DPH_RATES = {
     "RTX 3060": 0.042,
-    "RTX 3070": 0.036,
+    "RTX 3070": 0.049,
     "RTX 3080 Ti": 0.058,
     "RTX 3090": 0.083,
     "RTX 3090 Ti": 0.085,
@@ -119,10 +119,10 @@ def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeou
         if response.status_code == 200:
             instance_data = response.json()["instances"]
             status = instance_data.get('actual_status', 'unknown')
-            gpu_utilization = instance_data.get('gpu_util', None)  # Get GPU utilization, default to unknown if not present
+            gpu_utilization = instance_data.get('gpu_util', 0)  # Get GPU utilization, default to unknown if not present
        
             if status == "running":
-                if gpu_utilization >= 90:
+                if gpu_utilization is not None and gpu_utilization >= 90:
                     logging.info(f"Check #{check_counter}/{max_checks}: Instance {instance_id} is up and running with GPU utilization at {gpu_utilization}%!")
                     instance_running = True
                     gpu_utilization_met = True
