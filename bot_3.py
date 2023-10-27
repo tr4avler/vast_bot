@@ -9,7 +9,6 @@ CHECK_INTERVAL = 20  # in seconds
 MAX_ORDERS = 6
 GPU_DPH_RATES = {
     "RTX 3060": 0.042,
-    "RTX 3070": 0.034,
     "RTX 3080 Ti": 0.056,
     "RTX 3090": 0.083,
     "RTX 3090 Ti": 0.095,
@@ -34,7 +33,7 @@ SEARCH_CRITERIA = {
     "rentable": {"eq": True},
     "gpu_name": {"in": list(GPU_DPH_RATES.keys())}, 
     "cuda_max_good": {"gte": 12},
-    "gpu_ram": {"gte": 7},
+    "gpu_ram": {"gte": 10},
     "type": "on-demand",
     "intended_status": "running"
 }
