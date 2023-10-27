@@ -9,7 +9,7 @@ CHECK_INTERVAL = 20  # in seconds
 MAX_ORDERS = 6
 GPU_DPH_RATES = {
     "RTX 3060": 0.042,
-    "RTX 3070": 0.049,
+    "RTX 3070": 0.036,
     "RTX 3080 Ti": 0.058,
     "RTX 3090": 0.083,
     "RTX 3090 Ti": 0.085,
@@ -137,7 +137,7 @@ def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeou
         time.sleep(interval)
 
     # Only destroy the instance if it didn't start running or GPU utilization is less than 90%
-    if check_counter == 10 and not instance_running or not gpu_utilization_met:  
+    if not instance_running or not gpu_utilization_met:  
         logging.warning(f"Instance {instance_id} did not meet the required conditions after {check_counter} checks. Destroying this instance.")
         if destroy_instance(instance_id, machine_id, api_key):
             return False  # Indicate that the instance was destroyed
