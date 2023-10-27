@@ -1,10 +1,11 @@
 import requests
 import logging
 import time
+import threading
 
 # Constants
 API_KEY_FILE = 'api_key.txt'
-CHECK_INTERVAL = 60  # 1 minutes
+CHECK_INTERVAL = 30  # 30 seconds
 MAX_ORDERS = 6
 GPU_DPH_RATES = {
     "RTX 3060": 0.042,
@@ -156,6 +157,13 @@ def destroy_instance(instance_id, machine_id, api_key):
         logging.error(f"An unexpected error occurred while trying to destroy instance {instance_id}: {e}")
         return False
 
+def handle_instance(instance_id, machine_id, api_key):
+    global successful_orders
+    instance_success = monitor_instance_for_running_status(instance_id, machine_id, api_key)
+    if instance_success:
+        successful_orders += 1
+        if successful_orders >= MAX_ORDERS:
+            logging.info("Maximum order limit reached. Exiting...")
 
 # Test API connection first
 test_api_connection()
@@ -169,12 +177,14 @@ time.sleep(10)
 
 last_check_time = time.time() - CHECK_INTERVAL  # Initialize to ensure first check happens immediately
 
+threads = []
+
 while successful_orders < MAX_ORDERS:
     current_time = time.time()
 
     if current_time - last_check_time >= CHECK_INTERVAL:
         offers = search_gpu(successful_orders).get('offers', [])      
-        last_check_time = current_time  # Reset the last check time      
+        last_check_time = current_time  # Reset the last check time
         for offer in offers:
             machine_id = offer.get('machine_id')
             gpu_model = offer.get('gpu_name')
@@ -183,20 +193,16 @@ while successful_orders < MAX_ORDERS:
                 if response.get('success'):
                     instance_id = response.get('new_contract')
                     if instance_id:
-                        logging.info(f"Successfully placed order for {gpu_model} with machine_id: {machine_id}. Monitoring instance {instance_id} for 'running' status...")
-                        instance_success = monitor_instance_for_running_status(instance_id, machine_id, api_key)
-                        if instance_success:
-                            successful_orders += 1
-                        else:
-                            logging.info(f"Adjusted placed orders count due to instance destruction. New count: {successful_orders}")
-                        
-                        if successful_orders >= MAX_ORDERS:
-                            logging.info("Maximum order limit reached. Exiting...")
-                            exit(0)
+                        logging.info(f"Successfully placed order for {gpu_model} with machine_id: {machine_id}. Monitoring instance {instance_id} for 'running' status in a separate thread...")
+                        thread = threading.Thread(target=handle_instance, args=(instance_id, machine_id, api_key, successful_orders))
+                        thread.start()  # Start the thread
+                        threads.append(thread)
                     else:
                         logging.error(f"Order was successful but couldn't retrieve 'new_contract' (instance ID) for machine_id: {machine_id}")
 
     time.sleep(5)
 
+for thread in threads:
+    thread.join()  # Wait for thread to finish
 
 logging.info("Script finished execution.")
