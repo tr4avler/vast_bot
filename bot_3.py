@@ -137,7 +137,7 @@ def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeou
         time.sleep(interval)
 
     # Only destroy the instance if it didn't start running or GPU utilization is less than 90%
-    if not instance_running or not gpu_utilization_met:  
+    if check_counter == 10 and not instance_running or not gpu_utilization_met:  
         logging.warning(f"Instance {instance_id} did not meet the required conditions after {check_counter} checks. Destroying this instance.")
         if destroy_instance(instance_id, machine_id, api_key):
             return False  # Indicate that the instance was destroyed
