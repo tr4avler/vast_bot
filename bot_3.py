@@ -104,45 +104,56 @@ def place_order(offer_id):
     headers = {'Accept': 'application/json'}
     response = requests.put(url, headers=headers, json=payload)
     return response.json()
-
-
+    
 def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeout=600, interval=30):
     end_time = time.time() + timeout
-    check_counter = 0
-    max_checks = 10
+    interval_check_counter = 0
+    max_interval_checks = 4
 
     instance_running = False
     gpu_utilization_met = False
 
-    while time.time() < end_time and check_counter < max_checks:
+    while time.time() < end_time:
         url = f"https://console.vast.ai/api/v0/instances/{instance_id}?api_key={api_key}"
         headers = {'Accept': 'application/json'}
         response = requests.get(url, headers=headers)
         
         if response.status_code == 200:
-            instance_data = response.json()["instances"]
-            status = instance_data.get('actual_status', 'unknown')
-            gpu_utilization = instance_data.get('gpu_util', 'unknown')
-            
-            if status == "running":
-                if gpu_utilization >= 90:
-                    logging.info(f"Check #{check_counter + 1}: Instance {instance_id} is up and running with GPU utilization at {gpu_utilization}%!")
-                    instance_running = True
-                    gpu_utilization_met = True
-                    break
+            instance_data = response.json().get("instances", [])
+            if instance_data:
+                instance_data = instance_data[0]
+                status = instance_data.get('actual_status', 'unknown')
+                gpu_utilization = instance_data.get('gpu_util', 'unknown')
+                
+                if status == "running":
+                    if gpu_utilization >= 90:
+                        logging.info(f"Interval Check #{interval_check_counter + 1}: Instance {instance_id} is up and running with GPU utilization at {gpu_utilization}%!")
+                        instance_running = True
+                        gpu_utilization_met = True
+                        break
+                    else:
+                        logging.info(f"Interval Check #{interval_check_counter + 1}: Instance {instance_id} is up and running but GPU utilization is {gpu_utilization}%. Waiting for next check...")
                 else:
-                    logging.info(f"Check #{check_counter + 1}: Instance {instance_id} is up and running but GPU utilization is {gpu_utilization}%. Waiting for next check...")
+                    logging.info(f"Interval Check #{interval_check_counter + 1}: Instance {instance_id} status: {status}. Waiting for next check...")
             else:
-                logging.info(f"Check #{check_counter + 1}: Instance {instance_id} status: {status}. Waiting for next check...")
+                logging.error(f"No instance data found for instance {instance_id}.")
         else:
             logging.error(f"Error fetching status for instance {instance_id}. Status code: {response.status_code}. Response: {response.text}")
 
         time.sleep(interval)
-        check_counter += 1
+        interval_check_counter += 1
 
-    if check_counter >= max_checks:
-        logging.warning(f"Instance {instance_id} did not reach 'running' status after {max_checks} checks. Proceeding with destroy...")
-
+        if interval_check_counter >= max_interval_checks:
+            logging.warning(f"Instance {instance_id} did not reach 'running' status after {max_interval_checks} interval checks. Proceeding with destroy...")
+            if destroy_instance(instance_id, machine_id, api_key):
+                return False, False  # Indicate that the instance was destroyed           
+    
+    # Only destroy the instance if it didn't start running
+    if not instance_running:
+        logging.warning(f"Instance {instance_id} did not start running in the expected time frame. Destroying this instance.")
+        if destroy_instance(instance_id, machine_id, api_key):
+            return False, False  # Indicate that the instance was destroyed
+    
     return instance_running, gpu_utilization_met
 
 def destroy_instance(instance_id, machine_id, api_key):
