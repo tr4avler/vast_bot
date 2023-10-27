@@ -120,11 +120,8 @@ def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeou
             instance_data = response.json()["instances"]
             status = instance_data.get('actual_status', 'unknown')
             gpu_utilization = instance_data.get('gpu_util', None)  # Get GPU utilization, default to unknown if not present
-            
-            if gpu_utilization is None:
-                logging.info(f"Check #{check_counter}/{max_checks}: GPU utilization data for instance {instance_id} is not available yet. Waiting for next check...")
        
-            elif status == "running":
+            if status == "running":
                 if gpu_utilization >= 90:
                     logging.info(f"Check #{check_counter}/{max_checks}: Instance {instance_id} is up and running with GPU utilization at {gpu_utilization}%!")
                     instance_running = True
