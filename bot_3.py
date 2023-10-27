@@ -105,7 +105,7 @@ def place_order(offer_id):
     response = requests.put(url, headers=headers, json=payload)
     return response.json()
     
-def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeout=390, interval=30):
+def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeout=420, interval=30):
     end_time = time.time() + timeout
     instance_running = False  # Add a flag to check if instance is running
     gpu_utilization_met = False  # Flag to check if GPU utilization is 90% or more
