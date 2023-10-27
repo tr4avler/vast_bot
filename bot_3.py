@@ -166,7 +166,7 @@ def handle_instance(instance_id, machine_id, api_key, lock):
             successful_orders += 1
             logging.info(f"Successful orders count: {successful_orders}")
             if successful_orders >= MAX_ORDERS:
-            logging.info("Maximum order limit reached. Exiting...")
+                logging.info("Maximum order limit reached. Exiting...")
 
 # Test API connection first
 test_api_connection()
