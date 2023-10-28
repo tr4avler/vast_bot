@@ -99,7 +99,7 @@ def search_gpu(successful_orders):
 
 def place_order(offer_id):
     # Step 1: Retrieve the offer details again
-    url_get_offer = f"https://console.vast.ai/api/v0/offers/{offer_id}/"
+    url_get_offer = f"https://console.vast.ai/api/v0/bundles/{offer_id}/?api_key={api_key}"
     headers = {
         'Accept': 'application/json',
         'Authorization': f"ApiKey {api_key}"
