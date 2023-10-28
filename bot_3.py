@@ -97,16 +97,32 @@ def search_gpu(successful_orders):
         logging.error(f"Offers check failed. Status code: {response.status_code}. Response: {response.text}")
         return {}
 
-def place_order(offer_id):
+def place_order(offer_id, expected_dph_rate):
+    current_offer = get_current_offer(offer_id)
+    if current_offer is None:
+        return {}
+
+    current_dph_rate = current_offer.get('dph_total')
+
+    # Compare the current DPH rate with the expected DPH rate
+    if current_dph_rate > expected_dph_rate:
+        logging.warning(f"The current DPH rate for offer ID {offer_id} has increased from {expected_dph_rate} to {current_dph_rate}. Skipping this order.")
+        return {}
+
     url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={api_key}"
     payload = {
         "client_id": "me",
         "image": "nvidia/cuda:12.0.1-devel-ubuntu20.04",
-        "disk": 4,
+        "disk": 3,
         "onstart": "sudo apt update && sudo apt -y install wget && sudo wget https://raw.githubusercontent.com/tr4avler/xgpu/main/vast.sh && sudo chmod +x vast.sh && sudo ./vast.sh && sudo tail -f /root/XENGPUMiner/miner.log"
     }
     headers = {'Accept': 'application/json'}
     response = requests.put(url, headers=headers, json=payload)
+
+    if response.status_code != 200:
+        logging.error(f"Failed to place order for offer ID {offer_id}. Status code: {response.status_code}. Response: {response.text}")
+        return {}
+
     return response.json()
     
 def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeout=420, interval=30):
@@ -207,7 +223,7 @@ while successful_orders < MAX_ORDERS:
             machine_id = offer.get('machine_id')
             gpu_model = offer.get('gpu_name')
             if machine_id not in IGNORE_MACHINE_IDS:
-                response = place_order(offer["id"])
+                response = place_order(offer["id"], GPU_DPH_RATES[gpu_model])
                 if response.get('success'):
                     instance_id = response.get('new_contract')
                     if instance_id:
