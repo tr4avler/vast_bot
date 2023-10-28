@@ -5,7 +5,7 @@ import threading
 
 # Constants
 API_KEY_FILE = 'api_key.txt'
-CHECK_INTERVAL = 20  # in seconds
+CHECK_INTERVAL = 60  # in seconds
 MAX_ORDERS = 6
 GPU_DPH_RATES = {
     "RTX 3060": 0.042,
@@ -211,7 +211,7 @@ while successful_orders < MAX_ORDERS:
                 if response.get('success'):
                     instance_id = response.get('new_contract')
                     if instance_id:
-                        logging.info(f"Successfully placed order for {gpu_model} with machine_id: {machine_id} at {dph_rate}DPH. Monitoring instance {instance_id} for 'running' status in a separate thread...")
+                        logging.info(f"Successfully placed order for {gpu_model} with machine_id: {machine_id} at {offer.get('dph_total')} DPH. Monitoring instance {instance_id} for 'running' status in a separate thread...")
                         thread = threading.Thread(target=handle_instance, args=(instance_id, machine_id, api_key, successful_orders_lock))
                         thread.start()  # Start the thread
                         threads.append(thread)
