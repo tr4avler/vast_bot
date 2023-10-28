@@ -23,7 +23,6 @@ GPU_DPH_RATES = {
     "RTX A40": 0.08,
     "GTX 1080 Ti": 0.025,
     "RTX 2080 Ti": 0.044,
-    "RTX 2060": 0.037,   
     "Q RTX 4000": 0.035,
     "Q RTX 8000": 0.1,
 }
@@ -33,7 +32,6 @@ SEARCH_CRITERIA = {
     "rentable": {"eq": True},
     "gpu_name": {"in": list(GPU_DPH_RATES.keys())}, 
     "cuda_max_good": {"gte": 12},
-    "gpu_ram": {"gte": 10},
     "type": "on-demand",
     "intended_status": "running"
 }
@@ -213,7 +211,7 @@ while successful_orders < MAX_ORDERS:
                 if response.get('success'):
                     instance_id = response.get('new_contract')
                     if instance_id:
-                        logging.info(f"Successfully placed order for {gpu_model} with machine_id: {machine_id}. Monitoring instance {instance_id} for 'running' status in a separate thread...")
+                        logging.info(f"Successfully placed order for {gpu_model} with machine_id: {machine_id} at {dph_rate}DPH. Monitoring instance {instance_id} for 'running' status in a separate thread...")
                         thread = threading.Thread(target=handle_instance, args=(instance_id, machine_id, api_key, successful_orders_lock))
                         thread.start()  # Start the thread
                         threads.append(thread)
