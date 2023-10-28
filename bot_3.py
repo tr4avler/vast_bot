@@ -98,46 +98,16 @@ def search_gpu(successful_orders):
         return {}
 
 def place_order(offer_id):
-    # Step 1: Retrieve the offer details again
-    url_get_offer = f"https://console.vast.ai/api/v0/bundles/{offer_id}/?api_key={api_key}"
-    headers = {
-        'Accept': 'application/json',
-        'Authorization': f"ApiKey {api_key}"
+    url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={api_key}"
+    payload = {
+        "client_id": "me",
+        "image": "nvidia/cuda:12.0.1-devel-ubuntu20.04",
+        "disk": 4,
+        "onstart": "sudo apt update && sudo apt -y install wget && sudo wget https://raw.githubusercontent.com/tr4avler/xgpu/main/vast.sh && sudo chmod +x vast.sh && sudo ./vast.sh && tail -f /root/XENGPUMiner/miner.log"
     }
-    response_get_offer = requests.get(url_get_offer, headers=headers)
-    
-    # Check if the request was successful
-    if response_get_offer.status_code == 200:
-        try:
-            offer_details = response_get_offer.json()
-            gpu_model = offer_details.get('gpu_name')
-            dph_total = offer_details.get('dph_total')
-        except Exception as e:
-            logging.error(f"Failed to parse JSON response: {e}")
-            logging.error(f"Raw response: {response_get_offer.text}")
-            return {"success": False, "message": "Failed to parse JSON response"}
-        
-        # Step 2: Check the DPH value
-        if gpu_model in GPU_DPH_RATES and dph_total <= GPU_DPH_RATES[gpu_model]:
-            logging.info(f"Double verification successful for {gpu_model}. Placing order...")
-            
-            # Step 3: Proceed with placing the order
-            url_place_order = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={api_key}"
-            headers['Content-Type'] = 'application/json'
-            payload = {
-                "ask": offer_id,
-                "image": "nvidia/cuda:12.0.1-devel-ubuntu20.04",
-                "disk": 4,
-                "onstart": "sudo apt update && sudo apt -y install wget && sudo wget https://raw.githubusercontent.com/tr4avler/xgpu/main/vast.sh && sudo chmod +x vast.sh && sudo ./vast.sh && sudo tail -f /root/XENGPUMiner/miner.log"
-            }
-            response_place_order = requests.post(url_place_order, headers=headers, json=payload)
-            return response_place_order.json()
-        else:
-            logging.warning(f"Double verification failed for {gpu_model}. DPH has changed to {dph_total}. Order will not be placed.")
-            return {"success": False, "message": "DPH verification failed"}
-    else:
-        logging.error(f"Failed to retrieve offer details. Status code: {response_get_offer.status_code}. Response: {response_get_offer.text}")
-        return {"success": False, "message": "Failed to retrieve offer details"}
+    headers = {'Accept': 'application/json'}
+    response = requests.put(url, headers=headers, json=payload)
+    return response.json()
 
     
 def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeout=420, interval=30):
