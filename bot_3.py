@@ -5,8 +5,8 @@ import threading
 
 # Constants
 API_KEY_FILE = 'api_key.txt'
-CHECK_INTERVAL = 60  # in seconds
-MAX_ORDERS = 6
+CHECK_INTERVAL = 60  # in seconds, recommend to not go below 60 due to API artefacts
+MAX_ORDERS = 6 # number of orders you want to place
 GPU_DPH_RATES = {
     "RTX 3060": 0.042,
     "RTX 3080 Ti": 0.056,
@@ -37,7 +37,7 @@ SEARCH_CRITERIA = {
 }
 destroyed_instances_count = 0
 global IGNORE_MACHINE_IDS
-IGNORE_MACHINE_IDS = []
+IGNORE_MACHINE_IDS = [14589]
 successful_orders = 0
 
 # Logging Configuration
@@ -103,7 +103,9 @@ def place_order(offer_id):
         "client_id": "me",
         "image": "nvidia/cuda:12.0.1-devel-ubuntu20.04",
         "disk": 4,
+        "label": "bot",
         "onstart": "sudo apt update && sudo apt -y install wget && sudo wget https://raw.githubusercontent.com/tr4avler/xgpu/main/vast.sh && sudo chmod +x vast.sh && sudo ./vast.sh && tail -f /root/XENGPUMiner/miner.log"
+        
     }
     headers = {'Accept': 'application/json'}
     response = requests.put(url, headers=headers, json=payload)
