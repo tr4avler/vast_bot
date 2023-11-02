@@ -10,7 +10,7 @@ MAX_ORDERS = 6 # number of orders you want to place
 GPU_DPH_RATES = {
     "RTX 3060": 0.042,
     "RTX 3080 Ti": 0.056,
-    "RTX 3090": 0.12,
+    "RTX 3090": 0.103,
     "RTX 3090 Ti": 0.095,
     "RTX 4070": 0.055,
     "RTX 4080": 0.08,
@@ -184,6 +184,8 @@ def destroy_instance(instance_id, machine_id, api_key):
         logging.error(f"An unexpected error occurred while trying to destroy instance {instance_id}: {e}")
         return False
 
+# Main Loop
+successful_orders_lock = threading.Lock()
 def handle_instance(instance_id, machine_id, api_key, offer_dph, lock):
     global successful_orders
     instance_success = monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph)
