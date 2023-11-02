@@ -10,7 +10,7 @@ MAX_ORDERS = 6 # number of orders you want to place
 GPU_DPH_RATES = {
     "RTX 3060": 0.042,
     "RTX 3080 Ti": 0.056,
-    "RTX 3090": 0.083,
+    "RTX 3090": 0.12,
     "RTX 3090 Ti": 0.095,
     "RTX 4070": 0.055,
     "RTX 4080": 0.08,
@@ -86,8 +86,7 @@ def search_gpu(successful_orders):
             if filtered_offers:
                 for offer in filtered_offers:
                     gpu_model = offer.get('gpu_name')
-                    dph_total = offer.get('dph_total')  # Store the dph_total value here
-                    logging.info(f"Found matching offer for {gpu_model} with DPH of {dph_total}.")
+                    logging.info(f"Found matching offer for {gpu_model}.")
             else:
                 logging.info("No matching offers found based on DPH rates.")
             return {"offers": filtered_offers}
@@ -111,18 +110,13 @@ def place_order(offer_id):
     headers = {'Accept': 'application/json'}
     response = requests.put(url, headers=headers, json=payload)
     return response.json()
+
     
-def get_stored_dph_total(instance_id):
-    # This function should retrieve the stored dph_total for the given instance_id
-    # Implement the logic based on how and where you're storing this value.
-    # For now, it returns a placeholder value.
-    return 1.0  # Placeholder value, replace with actual retrieval logic.
-    
-def monitor_instance_for_running_status(instance_id, machine_id, api_key, stored_dph_total, timeout=450, interval=30):
+def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeout=420, interval=30):
     end_time = time.time() + timeout
     instance_running = False  # Add a flag to check if instance is running
+    dph_acceptable_increase = offer_dph * 1.05  # Allow a 5% increase
     gpu_utilization_met = False  # Flag to check if GPU utilization is 90% or more
-    dph_total_verified = False  # Flag to verify dph_total value
     check_counter = 0  # Initialize the interval check counter
     max_checks = timeout // interval  # Calculate maximum number of interval checks
     while time.time() < end_time:
@@ -134,21 +128,14 @@ def monitor_instance_for_running_status(instance_id, machine_id, api_key, stored
             instance_data = response.json()["instances"]
             status = instance_data.get('actual_status', 'unknown')
             gpu_utilization = instance_data.get('gpu_util', 0)  # Get GPU utilization, default to unknown if not present
-            dph_total = instance_data.get('dph_total', 0)  # Get dph_total, default to 0 if not present
-             
-             # Calculate the upper bound for dph_total (5% more than the stored value)
-            stored_dph_value = get_stored_dph_total(instance_id)
-            upper_bound = stored_dph_value * 1.05
+            current_dph = instance_data.get('dph_total', 0)  # Fetch the current DPH
             
-            
-             # Verify if the dph_total matches the stored value
-            if dph_total <= upper_bound:
-                dph_total_verified = True
-                logging.error(f"DPH value for instance {instance_id} is in range of acceptable value.")
-            else:
-                logging.error(f"Check #{check_counter}/{max_checks}: DPH value mismatch for instance {instance_id}. Expected: {stored_dph_total}, Actual: {dph_total}")
-       
-            if status == "running" and dph_total_verified:
+            # Check if current DPH is within the acceptable range
+            if current_dph > dph_acceptable_increase:
+                logging.warning(f"DPH has increased more than 5% from the offer price. Current DPH: {current_dph}, Offer DPH: {offer_dph}")
+                break  # Exit the loop and do not continue monitoring this instance
+                
+            if status == "running":
                 if gpu_utilization is not None and gpu_utilization >= 90:
                     logging.info(f"Check #{check_counter}/{max_checks}: Instance {instance_id} is up and running with GPU utilization at {gpu_utilization}%!")
                     instance_running = True
@@ -163,13 +150,13 @@ def monitor_instance_for_running_status(instance_id, machine_id, api_key, stored
 
         time.sleep(interval)
 
-    # Only destroy the instance if it didn't start running, GPU utilization is less than 90%, or dph_total is not verified
-    if not instance_running or not gpu_utilization_met or not dph_total_verified:  
+    # Only destroy the instance if it didn't start running or GPU utilization is less than 90%
+    if not instance_running or not gpu_utilization_met:  
         logging.warning(f"Instance {instance_id} did not meet the required conditions after {check_counter} checks. Destroying this instance.")
         if destroy_instance(instance_id, machine_id, api_key):
             return False  # Indicate that the instance was destroyed
 
-    return instance_running and gpu_utilization_met and dph_total_verified  # Return the status of the instance
+    return instance_running and gpu_utilization_met  # Return the status of the instance
 
 def destroy_instance(instance_id, machine_id, api_key):
     global IGNORE_MACHINE_IDS, destroyed_instances_count
@@ -197,9 +184,9 @@ def destroy_instance(instance_id, machine_id, api_key):
         logging.error(f"An unexpected error occurred while trying to destroy instance {instance_id}: {e}")
         return False
 
-def handle_instance(instance_id, machine_id, api_key, lock):
+def handle_instance(instance_id, machine_id, api_key, offer_dph, lock):
     global successful_orders
-    instance_success = monitor_instance_for_running_status(instance_id, machine_id, api_key)
+    instance_success = monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph)
     if instance_success:
         with lock:  # This acquires the lock and releases it when the block is exited
             successful_orders += 1
@@ -233,6 +220,7 @@ while successful_orders < MAX_ORDERS:
                 response = place_order(offer["id"])
                 if response.get('success'):
                     instance_id = response.get('new_contract')
+                    offer_dph = offer.get('dph_total')
                     if instance_id:
                         logging.info(f"Successfully placed order for {gpu_model} with machine_id: {machine_id} at {offer.get('dph_total')} DPH. Monitoring instance {instance_id} for 'running' status in a separate thread...")
                         thread = threading.Thread(target=handle_instance, args=(instance_id, machine_id, api_key, successful_orders_lock))
