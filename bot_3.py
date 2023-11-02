@@ -89,7 +89,6 @@ def search_gpu(successful_orders):
                     logging.info(f"Found matching offer for {gpu_model}.")
                     
                     # Place the order and store the dph_total value
-                    instance_id = place_order(offer)
                     stored_dph_total(instance_id, offer.get('dph_total'))
             else:
                 logging.info("No matching offers found based on DPH rates.")
