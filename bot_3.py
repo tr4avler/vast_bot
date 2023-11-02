@@ -8,9 +8,9 @@ API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 30  # in seconds, recommend to not go below 60 due to API artefacts
 MAX_ORDERS = 6 # number of orders you want to place
 GPU_DPH_RATES = {
-    "RTX 3060": 0.042,
+    "RTX 3060": 0.063,
     "RTX 3080 Ti": 0.056,
-    "RTX 3090": 0.103,
+    "RTX 3090": 0.083,
     "RTX 3090 Ti": 0.095,
     "RTX 4070": 0.055,
     "RTX 4080": 0.08,
