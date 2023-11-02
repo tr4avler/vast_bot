@@ -113,6 +113,7 @@ def place_order(offer_id):
 
     
 def monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph, timeout=450, interval=30):
+    dph_check_passed_already = False
     end_time = time.time() + timeout
     instance_running = False  # Add a flag to check if instance is running
     dph_acceptable_increase = offer_dph * 1.05  # Allow a 5% increase
@@ -134,8 +135,9 @@ def monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_
             if current_dph > dph_acceptable_increase:
                 logging.warning(f"DPH has increased more than 5% from the offer price. Current DPH: {current_dph}, Offer DPH: {offer_dph}")
                 break  # Exit the loop and do not continue monitoring this instance
-            else:
+            elif not dph_check_passed_already:
                 logging.info(f"DPH check passed: Current DPH {current_dph} is within the acceptable 5% range of the offer DPH {offer_dph}.")
+                dph_check_passed_already = True  # Set the flag to True after logging once
                 
             if status == "running":
                 if gpu_utilization is not None and gpu_utilization >= 90:
