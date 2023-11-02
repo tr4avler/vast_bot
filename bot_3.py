@@ -87,6 +87,10 @@ def search_gpu(successful_orders):
                 for offer in filtered_offers:
                     gpu_model = offer.get('gpu_name')
                     logging.info(f"Found matching offer for {gpu_model}.")
+                    
+                    # Place the order and store the dph_total value
+                    instance_id = place_order(offer)
+                    stored_dph_total(instance_id, offer.get('dph_total'))
             else:
                 logging.info("No matching offers found based on DPH rates.")
             return {"offers": filtered_offers}
@@ -112,10 +116,11 @@ def place_order(offer_id):
     return response.json()
 
     
-def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeout=420, interval=30):
+def monitor_instance_for_running_status(instance_id, machine_id, api_key, stored_dph_total, timeout=450, interval=30):
     end_time = time.time() + timeout
     instance_running = False  # Add a flag to check if instance is running
     gpu_utilization_met = False  # Flag to check if GPU utilization is 90% or more
+    dph_total_verified = False  # Flag to verify dph_total value
     check_counter = 0  # Initialize the interval check counter
     max_checks = timeout // interval  # Calculate maximum number of interval checks
     while time.time() < end_time:
@@ -127,8 +132,21 @@ def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeou
             instance_data = response.json()["instances"]
             status = instance_data.get('actual_status', 'unknown')
             gpu_utilization = instance_data.get('gpu_util', 0)  # Get GPU utilization, default to unknown if not present
+            dph_total = instance_data.get('dph_total', 0)  # Get dph_total, default to 0 if not present
+             
+             # Calculate the upper bound for dph_total (5% more than the stored value)
+            stored_dph_value = get_stored_dph_total(instance_id)
+            upper_bound = stored_dph_value * 1.05
+            
+            
+             # Verify if the dph_total matches the stored value
+            if dph_total <= upper_bound:
+                dph_total_verified = True
+                logging.error(f"DPH value for instance {instance_id} is in range of acceptable value.")
+            else:
+                logging.error(f"Check #{check_counter}/{max_checks}: DPH value mismatch for instance {instance_id}. Expected: {stored_dph_total}, Actual: {dph_total}")
        
-            if status == "running":
+            if status == "running" and dph_total_verified:
                 if gpu_utilization is not None and gpu_utilization >= 90:
                     logging.info(f"Check #{check_counter}/{max_checks}: Instance {instance_id} is up and running with GPU utilization at {gpu_utilization}%!")
                     instance_running = True
@@ -143,13 +161,13 @@ def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeou
 
         time.sleep(interval)
 
-    # Only destroy the instance if it didn't start running or GPU utilization is less than 90%
-    if not instance_running or not gpu_utilization_met:  
+    # Only destroy the instance if it didn't start running, GPU utilization is less than 90%, or dph_total is not verified
+    if not instance_running or not gpu_utilization_met or not dph_total_verified:  
         logging.warning(f"Instance {instance_id} did not meet the required conditions after {check_counter} checks. Destroying this instance.")
         if destroy_instance(instance_id, machine_id, api_key):
             return False  # Indicate that the instance was destroyed
 
-    return instance_running and gpu_utilization_met  # Return the status of the instance
+    return instance_running and gpu_utilization_met and dph_total_verified  # Return the status of the instance
 
 def destroy_instance(instance_id, machine_id, api_key):
     global IGNORE_MACHINE_IDS, destroyed_instances_count
