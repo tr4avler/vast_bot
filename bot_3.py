@@ -186,6 +186,7 @@ def destroy_instance(instance_id, machine_id, api_key):
 
 # Main Loop
 successful_orders_lock = threading.Lock()
+
 def handle_instance(instance_id, machine_id, api_key, offer_dph, lock):
     global successful_orders
     instance_success = monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph)
@@ -199,8 +200,6 @@ def handle_instance(instance_id, machine_id, api_key, offer_dph, lock):
 # Test API connection first
 test_api_connection()
 
-# Main Loop
-successful_orders_lock = threading.Lock()
 
 # Add a 10-second delay before the first attempt
 logging.info("Waiting for 10 seconds before the first attempt to check offers...")
