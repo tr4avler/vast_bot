@@ -8,7 +8,7 @@ API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 30  # in seconds, recommend to not go below 60 due to API artefacts
 MAX_ORDERS = 6 # number of orders you want to place
 GPU_DPH_RATES = {
-    "RTX 3060": 0.063,
+    "RTX 3060": 0.0602,
     "RTX 3080 Ti": 0.056,
     "RTX 3090": 0.083,
     "RTX 3090 Ti": 0.095,
@@ -116,7 +116,7 @@ def monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_
     dph_check_passed_already = False
     end_time = time.time() + timeout
     instance_running = False  # Add a flag to check if instance is running
-    dph_acceptable_increase = offer_dph * 1.05  # Allow a 5% increase
+    dph_acceptable_increase = offer_dph * 1.02  # Allow a 5% increase
     gpu_utilization_met = False  # Flag to check if GPU utilization is 90% or more
     check_counter = 0  # Initialize the interval check counter
     max_checks = timeout // interval  # Calculate maximum number of interval checks
