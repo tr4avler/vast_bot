@@ -5,7 +5,7 @@ import threading
 
 # Constants
 API_KEY_FILE = 'api_key.txt'
-CHECK_INTERVAL = 60  # in seconds, recommend to not go below 60 due to API artefacts
+CHECK_INTERVAL = 30  # in seconds, recommend to not go below 60 due to API artefacts
 MAX_ORDERS = 6 # number of orders you want to place
 GPU_DPH_RATES = {
     "RTX 3060": 0.042,
@@ -112,7 +112,7 @@ def place_order(offer_id):
     return response.json()
 
     
-def monitor_instance_for_running_status(instance_id, machine_id, api_key, timeout=420, interval=30):
+def monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph, timeout=450, interval=30):
     end_time = time.time() + timeout
     instance_running = False  # Add a flag to check if instance is running
     dph_acceptable_increase = offer_dph * 1.05  # Allow a 5% increase
@@ -189,7 +189,7 @@ successful_orders_lock = threading.Lock()
 
 def handle_instance(instance_id, machine_id, api_key, offer_dph, lock):
     global successful_orders
-    instance_success = monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph)
+    instance_success = monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph)  # Pass offer_dph to this function
     if instance_success:
         with lock:  # This acquires the lock and releases it when the block is exited
             successful_orders += 1
@@ -212,7 +212,7 @@ threads = []
 while successful_orders < MAX_ORDERS:
     current_time = time.time()
     if current_time - last_check_time >= CHECK_INTERVAL:
-        offers = search_gpu(successful_orders).get('offers', [])      
+        offers = search_gpu(successful_orders).get('offers', [])
         last_check_time = current_time  # Reset the last check time
         for offer in offers:
             machine_id = offer.get('machine_id')
@@ -221,10 +221,10 @@ while successful_orders < MAX_ORDERS:
                 response = place_order(offer["id"])
                 if response.get('success'):
                     instance_id = response.get('new_contract')
-                    offer_dph = offer.get('dph_total')
+                    offer_dph = offer.get('dph_total')  # This captures the DPH rate for the current offer
                     if instance_id:
                         logging.info(f"Successfully placed order for {gpu_model} with machine_id: {machine_id} at {offer.get('dph_total')} DPH. Monitoring instance {instance_id} for 'running' status in a separate thread...")
-                        thread = threading.Thread(target=handle_instance, args=(instance_id, machine_id, api_key, successful_orders_lock))
+                        thread = threading.Thread(target=handle_instance, args=(instance_id, machine_id, api_key, offer_dph, successful_orders_lock))  # Add offer_dph and successful_orders_lock to args
                         thread.start()  # Start the thread
                         threads.append(thread)
                     else:
@@ -232,7 +232,7 @@ while successful_orders < MAX_ORDERS:
                 else:
                     logging.error(f"Failed to place order for offer ID {offer['id']} for machine_id: {machine_id}.")
             else:
-                logging.info(f"Skipping machine ID {machine_id} as it is in the ignore list.")                        
+                logging.info(f"Skipping machine ID {machine_id} as it is in the ignore list.")
     time.sleep(5)
 
 for thread in threads:
