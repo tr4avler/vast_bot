@@ -86,10 +86,8 @@ def search_gpu(successful_orders):
             if filtered_offers:
                 for offer in filtered_offers:
                     gpu_model = offer.get('gpu_name')
-                    logging.info(f"Found matching offer for {gpu_model}.")
-                    
-                    # Place the order and store the dph_total value
-                    stored_dph_total(instance_id, offer.get('dph_total'))
+                    dph_total = offer.get('dph_total')  # Store the dph_total value here
+                    logging.info(f"Found matching offer for {gpu_model} with DPH of {dph_total}.")
             else:
                 logging.info("No matching offers found based on DPH rates.")
             return {"offers": filtered_offers}
@@ -113,7 +111,12 @@ def place_order(offer_id):
     headers = {'Accept': 'application/json'}
     response = requests.put(url, headers=headers, json=payload)
     return response.json()
-
+    
+def get_stored_dph_total(instance_id):
+    # This function should retrieve the stored dph_total for the given instance_id
+    # Implement the logic based on how and where you're storing this value.
+    # For now, it returns a placeholder value.
+    return 1.0  # Placeholder value, replace with actual retrieval logic.
     
 def monitor_instance_for_running_status(instance_id, machine_id, api_key, stored_dph_total, timeout=450, interval=30):
     end_time = time.time() + timeout
