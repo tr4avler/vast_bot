@@ -31,7 +31,7 @@ SEARCH_CRITERIA = {
     "external": {"eq": False},
     "rentable": {"eq": True},
     "gpu_name": {"in": list(GPU_DPH_RATES.keys())}, 
-    "cuda_max_good": {"gte": 11},
+    "cuda_max_good": {"lt": 12},
     "type": "on-demand",
     "intended_status": "running"
 }
@@ -112,7 +112,7 @@ def place_order(offer_id):
     return response.json()
 
     
-def monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph, timeout=450, interval=30):
+def monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph, timeout=840, interval=30):
     dph_check_passed_already = False
     end_time = time.time() + timeout
     instance_running = False  # Add a flag to check if instance is running
