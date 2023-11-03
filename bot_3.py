@@ -112,14 +112,13 @@ def place_order(offer_id):
     return response.json()
 
     
-def monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph, timeout=450, interval=30):
-    dph_check_passed_already = False
+def monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph, gpu_model, timeout=450, interval=30):
     end_time = time.time() + timeout
     instance_running = False  # Add a flag to check if instance is running
-    dph_acceptable_increase = offer_dph * 1.05  # Allow a 5% increase for VastAI cheaters :)
     gpu_utilization_met = False  # Flag to check if GPU utilization is 90% or more
     check_counter = 0  # Initialize the interval check counter
     max_checks = timeout // interval  # Calculate maximum number of interval checks
+    dph_logged = False
     while time.time() < end_time:
         url = f"https://console.vast.ai/api/v0/instances/{instance_id}?api_key={api_key}"
         headers = {'Accept': 'application/json'}
@@ -132,12 +131,17 @@ def monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_
             current_dph = instance_data.get('dph_total', 0)  # Fetch the current DPH
             
             # Check if current DPH is within the acceptable range
-            if current_dph > dph_acceptable_increase:
-                logging.warning(f"DPH has increased more than 5% from the offer price. Current DPH: {current_dph}, Offer DPH: {offer_dph}")
-                break  # Exit the loop and do not continue monitoring this instance
-            elif not dph_check_passed_already:
-                logging.info(f"DPH check passed: Current DPH {current_dph} is within the acceptable 5% range of the offer DPH {offer_dph}.")
-                dph_check_passed_already = True  # Set the flag to True after logging once
+            if not dph_logged:  # Log the DPH check only if it has not been logged before
+                if current_dph > GPU_DPH_RATES.get(gpu_model, float('inf')):
+                    dph_acceptable_increase = offer_dph * 1.05
+                    if current_dph > dph_acceptable_increase:
+                        logging.warning(f"DPH has increased more than 5% from the offer price. Current DPH: {current_dph}, Offer DPH: {offer_dph}")
+                        break
+                    else:
+                        logging.info(f"DPH check passed: Current DPH {current_dph} is within the acceptable 5% range of the offer DPH {offer_dph}.")
+                else:
+                    logging.info(f"DPH check skipped: Current DPH {current_dph} is at or below defined criteria for {gpu_model}.")
+                dph_logged = True  # Set the flag to True after logging the DPH check
                 
             if status == "running":
                 if gpu_utilization is not None and gpu_utilization >= 90:
@@ -191,9 +195,9 @@ def destroy_instance(instance_id, machine_id, api_key):
 # Main Loop
 successful_orders_lock = threading.Lock()
 
-def handle_instance(instance_id, machine_id, api_key, offer_dph, lock):
+def handle_instance(instance_id, machine_id, api_key, offer_dph, gpu_model, lock):
     global successful_orders
-    instance_success = monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph)  # Pass offer_dph to this function
+    instance_success = monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph, gpu_model)  # Pass offer_dph to this function
     if instance_success:
         with lock:  # This acquires the lock and releases it when the block is exited
             successful_orders += 1
@@ -228,7 +232,7 @@ while successful_orders < MAX_ORDERS:
                     offer_dph = offer.get('dph_total')  # This captures the DPH rate for the current offer
                     if instance_id:
                         logging.info(f"Successfully placed order for {gpu_model} with machine_id: {machine_id} at {offer.get('dph_total')} DPH. Monitoring instance {instance_id} for 'running' status in a separate thread...")
-                        thread = threading.Thread(target=handle_instance, args=(instance_id, machine_id, api_key, offer_dph, successful_orders_lock))  # Add offer_dph and successful_orders_lock to args
+                        thread = threading.Thread(target=handle_instance, args=(instance_id, machine_id, api_key, offer_dph, gpu_model, successful_orders_lock))  
                         thread.start()  # Start the thread
                         threads.append(thread)
                     else:
