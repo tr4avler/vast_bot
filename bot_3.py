@@ -37,7 +37,7 @@ SEARCH_CRITERIA = {
 }
 destroyed_instances_count = 0
 global IGNORE_MACHINE_IDS
-IGNORE_MACHINE_IDS = []
+IGNORE_MACHINE_IDS = [11903]
 successful_orders = 0
 
 # Logging Configuration
