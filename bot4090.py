@@ -110,7 +110,7 @@ def place_order(offer_id, cuda_max_good):
     return response.json()
 
     
-def monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph, gpu_model, timeout=900, interval=30):
+def monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph, gpu_model, timeout=28800, interval=30):
     end_time = time.time() + timeout
     instance_running = False  # Add a flag to check if instance is running
     gpu_utilization_met = False  # Flag to check if GPU utilization is 90% or more
