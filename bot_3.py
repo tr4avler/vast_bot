@@ -25,6 +25,8 @@ GPU_DPH_RATES = {
     "RTX 2080 Ti": 0.044,
     "Q RTX 4000": 0.035,
     "Q RTX 8000": 0.1,
+    "H100 PCIE": 0.1,
+    "H100 SXM": 0.1,
 }
 SEARCH_CRITERIA = {
     "verified": {},
