@@ -5,7 +5,7 @@ import threading
 
 # Constants
 API_KEY_FILE = 'api_key.txt'
-CHECK_INTERVAL = 60  # in seconds, recommend to not go below 60 due to API artefacts
+CHECK_INTERVAL = 20  # in seconds, recommend to not go below 60 due to API artefacts
 MAX_ORDERS = 10 # number of orders you want to place
 GPU_DPH_RATES = {
     "RTX 4090": 0.1321,
