@@ -6,7 +6,7 @@ import threading
 # Constants
 API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 60  # in seconds, recommend to not go below 60 due to API artefacts
-MAX_ORDERS = 5 # number of orders you want to place
+MAX_ORDERS = 10 # number of orders you want to place
 GPU_DPH_RATES = {
     "GTX 1070": 0.02521, 
     "RTX 2060": 0.02521,   
@@ -37,7 +37,7 @@ SEARCH_CRITERIA = {
     "external": {"eq": False},
     "rentable": {"eq": True},
     "gpu_name": {"in": list(GPU_DPH_RATES.keys())}, 
-    "cuda_max_good": {"gte": 12},
+    "cuda_max_good": {"gte": 11},
     "type": "on-demand",
     "intended_status": "running"
 }
@@ -93,6 +93,7 @@ def search_gpu(successful_orders):
                 gpu_name = offer.get('gpu_name')
                 num_gpus = offer.get('num_gpus', 1)  # Assume 1 if not specified
                 dph_total = offer.get('dph_total')
+                cuda_max_good = offer.get('cuda_max_good')
                 if gpu_name in GPU_DPH_RATES and dph_total is not None:
                     dph_per_unit = dph_total / num_gpus
                     if dph_per_unit <= GPU_DPH_RATES[gpu_name]:
@@ -111,12 +112,17 @@ def search_gpu(successful_orders):
         logging.error(f"Offers check failed. Status code: {response.status_code}. Response: {response.text}")
         return {}
 
-def place_order(offer_id):
+def place_order(offer_id, cuda_max_good):
     url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={api_key}"
+    if cuda_max_good >= 12:
+        image = "nvidia/cuda:12.0.1-devel-ubuntu20.04"
+    else:
+        image = "nvidia/cuda:11.1.1-devel-ubuntu20.04"
+
     payload = {
         "client_id": "me",
-        "image": "nvidia/cuda:12.0.1-devel-ubuntu20.04",
-        "disk": 12,
+        "image": image,  
+        "disk": 8,
         "label": "bot",
         "onstart": "sudo apt update && sudo apt -y install wget && sudo wget https://raw.githubusercontent.com/tr4avler/xgpu/main/vast14.sh && sudo chmod +x vast14.sh && sudo ./vast14.sh"
         
@@ -239,8 +245,9 @@ while successful_orders < MAX_ORDERS:
         for offer in offers:
             machine_id = offer.get('machine_id')
             gpu_model = offer.get('gpu_name')
+            cuda_max_good = offer.get('cuda_max_good')
             if machine_id not in IGNORE_MACHINE_IDS:
-                response = place_order(offer["id"])
+                response = place_order(offer["id"], cuda_max_good) 
                 if response.get('success'):
                     instance_id = response.get('new_contract')
                     offer_dph = offer.get('dph_total')  # This captures the DPH rate for the current offer
