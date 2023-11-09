@@ -8,25 +8,25 @@ API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 60  # in seconds, recommend to not go below 60 due to API artefacts
 MAX_ORDERS = 10 # number of orders you want to place
 GPU_DPH_RATES = {
-    "RTX 3060": 0.0405,
-    "RTX 3080 Ti": 0.056,
-    "RTX 3090": 0.09,
-    "RTX 3090 Ti": 0.01,
-    "RTX 4070": 0.055,
+    "RTX 3060": 0.041,
+    "RTX 3080 Ti": 0.06,
+    "RTX 3090": 0.095,
+    "RTX 3090 Ti": 0.011,
+    "RTX 4070": 0.07,
     "RTX 4080": 0.08,
-    "RTX 4090": 0.121,
-    "RTX A2000": 0.03,
-    "RTX A4000": 0.048,
-    "RTX A5000": 0.074,
-    "RTX A6000": 0.01,
-    "RTX A10": 0.059,
-    "RTX A40": 0.011,
-    "GTX 1080 Ti": 0.025,
-    "RTX 2080 Ti": 0.044,
+    "RTX 4090": 0.128,
+    "RTX A4000": 0.0521,
+    "RTX A5000": 0.08,
+    "RTX A6000": 0.11,
+    "RTX A10": 0.07,
+    "RTX A40": 0.1,
+    "RTX 2080 Ti": 0.046,
     "Q RTX 4000": 0.035,
     "Q RTX 8000": 0.1,
-    "H100 PCIE": 0.1,
-    "H100 SXM": 0.1,
+    "H100 PCIE": 0.11,
+    "H100 SXM": 0.11,
+    "A100 PCIE": 0.1,
+    "A100 SXM4": 0.1,
 }
 SEARCH_CRITERIA = {
     "verified": {},
@@ -128,7 +128,7 @@ def place_order(offer_id, cuda_max_good):
     return response.json()
 
     
-def monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph, gpu_model, timeout=900, interval=30):
+def monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph, gpu_model, timeout=1200, interval=30):
     end_time = time.time() + timeout
     instance_running = False  # Add a flag to check if instance is running
     gpu_utilization_met = False  # Flag to check if GPU utilization is 90% or more
