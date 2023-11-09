@@ -5,8 +5,8 @@ import threading
 
 # Constants
 API_KEY_FILE = 'api_key.txt'
-CHECK_INTERVAL = 30  # in seconds, recommend to not go below 60 due to API artefacts
-MAX_ORDERS = 6 # number of orders you want to place
+CHECK_INTERVAL = 60  # in seconds, recommend to not go below 60 due to API artefacts
+MAX_ORDERS = 10 # number of orders you want to place
 GPU_DPH_RATES = {
     "RTX 3060": 0.0405,
     "RTX 3080 Ti": 0.056,
@@ -31,13 +31,13 @@ SEARCH_CRITERIA = {
     "external": {"eq": False},
     "rentable": {"eq": True},
     "gpu_name": {"in": list(GPU_DPH_RATES.keys())}, 
-    "cuda_max_good": {"gte": 12},
+    "cuda_max_good": {"gte": 11},
     "type": "on-demand",
     "intended_status": "running"
 }
 destroyed_instances_count = 0
 global IGNORE_MACHINE_IDS
-IGNORE_MACHINE_IDS = [11903]
+IGNORE_MACHINE_IDS = []
 successful_orders = 0
 
 # Logging Configuration
@@ -81,14 +81,23 @@ def search_gpu(successful_orders):
             logging.info(f"{gpu_model}: {dph_rate}/hour")
         try:
             offers = response.json().get('offers', [])
-            # Filter offers based on DPH rates
-            filtered_offers = [offer for offer in offers if offer.get('gpu_name') in GPU_DPH_RATES and offer.get('dph_total') <= GPU_DPH_RATES[offer.get('gpu_name')]]
+            # Filter offers based on DPH rates per unit GPU
+            filtered_offers = []
+            for offer in offers:
+                gpu_name = offer.get('gpu_name')
+                num_gpus = offer.get('num_gpus', 1)  # Assume 1 if not specified
+                dph_total = offer.get('dph_total')
+                cuda_max_good = offer.get('cuda_max_good')
+                if gpu_name in GPU_DPH_RATES and dph_total is not None:
+                    dph_per_unit = dph_total / num_gpus
+                    if dph_per_unit <= GPU_DPH_RATES[gpu_name]:
+                        logging.info(f"Found matching offer for {gpu_name} with dph per GPU: {dph_per_unit}")
+                        filtered_offers.append(offer)
+
             if filtered_offers:
-                for offer in filtered_offers:
-                    gpu_model = offer.get('gpu_name')
-                    logging.info(f"Found matching offer for {gpu_model}.")
+                logging.info("Matching offers found based on DPH rates per GPU.")
             else:
-                logging.info("No matching offers found based on DPH rates.")
+                logging.info("No matching offers found based on DPH rates per GPU.")
             return {"offers": filtered_offers}
         except Exception as e:
             logging.error(f"Failed to parse JSON from API response during offers check: {e}")
@@ -97,14 +106,19 @@ def search_gpu(successful_orders):
         logging.error(f"Offers check failed. Status code: {response.status_code}. Response: {response.text}")
         return {}
 
-def place_order(offer_id):
+def place_order(offer_id, cuda_max_good):
     url = f"https://console.vast.ai/api/v0/asks/{offer_id}/?api_key={api_key}"
+    if cuda_max_good >= 12:
+        image = "nvidia/cuda:12.0.1-devel-ubuntu20.04"
+    else:
+        image = "nvidia/cuda:11.1.1-devel-ubuntu20.04"
+
     payload = {
         "client_id": "me",
-        "image": "nvidia/cuda:12.0.1-devel-ubuntu20.04",
-        "disk": 4,
+        "image": image,  
+        "disk": 8,
         "label": "bot",
-        "onstart": "sudo apt update && sudo apt -y install wget && sudo wget https://raw.githubusercontent.com/tr4avler/xgpu/main/vast.sh && sudo chmod +x vast.sh && sudo ./vast.sh && tail -f /root/XENGPUMiner/miner.log"
+        "onstart": "sudo apt update && sudo apt -y install wget && sudo wget https://raw.githubusercontent.com/tr4avler/xgpu/main/vast14.sh && sudo chmod +x vast14.sh && sudo ./vast14.sh"
         
     }
     headers = {'Accept': 'application/json'}
@@ -112,7 +126,7 @@ def place_order(offer_id):
     return response.json()
 
     
-def monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph, gpu_model, timeout=450, interval=30):
+def monitor_instance_for_running_status(instance_id, machine_id, api_key, offer_dph, gpu_model, timeout=900, interval=30):
     end_time = time.time() + timeout
     instance_running = False  # Add a flag to check if instance is running
     gpu_utilization_met = False  # Flag to check if GPU utilization is 90% or more
@@ -225,8 +239,9 @@ while successful_orders < MAX_ORDERS:
         for offer in offers:
             machine_id = offer.get('machine_id')
             gpu_model = offer.get('gpu_name')
+            cuda_max_good = offer.get('cuda_max_good')
             if machine_id not in IGNORE_MACHINE_IDS:
-                response = place_order(offer["id"])
+                response = place_order(offer["id"], cuda_max_good) 
                 if response.get('success'):
                     instance_id = response.get('new_contract')
                     offer_dph = offer.get('dph_total')  # This captures the DPH rate for the current offer
