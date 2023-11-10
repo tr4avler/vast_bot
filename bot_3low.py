@@ -8,13 +8,9 @@ API_KEY_FILE = 'api_key.txt'
 CHECK_INTERVAL = 60  # in seconds, recommend to not go below 60 due to API artefacts
 MAX_ORDERS = 10 # number of orders you want to place
 GPU_DPH_RATES = {
-    "GTX 1070": 0.02521, 
     "RTX 2060": 0.02521,   
-    "GTX 1660 S": 0.02521,
-    "GTX 1660 Ti": 0.02521,
     "RTX 3070 Ti": 0.02521,
     "RTX 2070": 0.02521,
-    "GTX 1060": 0.02521,
     "RTX 3060 Ti": 0.02521,
     "RTX 3070": 0.02521, 
     "RTX A2000": 0.02521,  
@@ -27,10 +23,18 @@ GPU_DPH_RATES = {
     "GTX 1080 Ti": 0.02521,
     "RTX 2060S": 0.02521,
     "RTX A5000": 0.02521, 
+    "RTX A6000": 0.02521, 
     "RTX A4500": 0.02521, 
     "A10": 0.02521, 
+    "A40": 0.02521, 
     "RTX 3090 Ti": 0.02521,
     "RTX 4090": 0.02521,
+    "Q RTX 4000": 0.035,
+    "Q RTX 8000": 0.1,
+    "H100 PCIE": 0.11,
+    "H100 SXM": 0.11,
+    "A100 PCIE": 0.1,
+    "A100 SXM4": 0.1,
 }
 SEARCH_CRITERIA = {
     "verified": {},
